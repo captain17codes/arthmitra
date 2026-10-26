@@ -7,12 +7,55 @@ from __future__ import annotations
 
 import base64
 import hashlib
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import jwt
+from argon2 import PasswordHasher
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy.types import String, TypeDecorator
 
 from .config import settings
+
+_PH = PasswordHasher()
+
+
+def hash_pin(pin: str) -> str:
+    """Hash PIN using Argon2id."""
+    return _PH.hash(pin)
+
+
+def verify_pin(pin: str, pin_hash: str) -> bool:
+    """Verify PIN against Argon2id hash."""
+    try:
+        return _PH.verify(pin_hash, pin)
+    except Exception:
+        return False
+
+
+def create_access_token(
+    user_id: int, role: str, org_id: int, expires_delta: timedelta | None = None
+) -> str:
+    """Generate signed JWT token."""
+    now = datetime.now(UTC)
+    expire = now + (expires_delta or timedelta(minutes=settings.access_token_expire_minutes))
+    payload = {
+        "sub": str(user_id),
+        "user_id": user_id,
+        "role": role,
+        "org_id": org_id,
+        "iat": now,
+        "exp": expire,
+    }
+    return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
+
+
+def decode_access_token(token: str) -> dict[str, Any] | None:
+    """Decode and validate signed JWT token."""
+    try:
+        return jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
+    except jwt.PyJWTError:
+        return None
 
 
 def _derive_fernet_key(secret: str) -> bytes:

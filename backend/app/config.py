@@ -21,6 +21,9 @@ class Settings(BaseSettings):
 
     # Security
     secret_key: str = "insecure-default-change-in-production-1234567890"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60 * 24  # 24 hours
+    notice_version_current: str = "v1.0-2026-04"
 
     model_config = SettingsConfigDict(
         env_file=".env",
