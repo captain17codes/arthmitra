@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+
 from sqlalchemy import (
     Boolean,
     Column,
@@ -9,12 +10,12 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    Numeric,
     String,
 )
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+
 from .enums import CoordSource, SectorType
 from .spatial import SafeGeometry
 

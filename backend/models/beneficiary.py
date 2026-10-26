@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from typing import List, Optional
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     DateTime,
     Enum,
     ForeignKey,
     Integer,
-    JSON,
     Numeric,
     String,
     func,
@@ -17,6 +16,7 @@ from sqlalchemy.orm import relationship
 
 from app.database import Base
 from app.security import EncryptedString
+
 from .enums import ConsentMethod, TriState
 
 

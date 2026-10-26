@@ -1,6 +1,7 @@
-from typing import Any, Optional
-from sqlalchemy.types import String, TypeDecorator
+from typing import Any
+
 from geoalchemy2.types import Geometry
+from sqlalchemy.types import String, TypeDecorator
 
 
 class SafeGeometry(TypeDecorator):

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from sqlalchemy import (
+    JSON,
     Column,
     DateTime,
     Integer,
-    JSON,
     String,
     func,
 )

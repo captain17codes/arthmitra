@@ -4,7 +4,6 @@ Seed initial knowledge base tables:
 and scheme catalog codes per TECH_SPEC §2.
 """
 
-from typing import List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

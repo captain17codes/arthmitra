@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import List
 from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, func
 from sqlalchemy.orm import relationship
 
 from app.database import Base
 from app.security import EncryptedString
+
 from .enums import OrgType, UserRole
 
 

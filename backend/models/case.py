@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from typing import Any
+
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     DateTime,
@@ -9,7 +11,6 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    JSON,
     Numeric,
     String,
     Text,
@@ -18,6 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+
 from .enums import CaseStatus, InputSource
 
 
