@@ -8,10 +8,10 @@ Target State: Maharashtra (Focus District: Pune, LGD Code: 490)
 
 | Metric | Count / Value | Target | Status |
 |---|---|---|---|
-| Total LGD Villages Processed | 10 | Baseline Seed | ✅ PASS |
-| Census 2011 Match Rate | 100.0% (10/10) | ≥ 95.0% | ✅ PASS |
-| OSM Coordinates Match Rate | 100.0% (10/10) | ≥ 90.0% | ✅ PASS |
-| Precomputed Neighbours (≤ 10 km) | 2 pairs | Complete Graph | ✅ PASS |
+| Total LGD Villages Processed | 16 | Baseline Seed | ✅ PASS |
+| Census 2011 Match Rate | 100.0% (16/16) | ≥ 95.0% | ✅ PASS |
+| OSM Coordinates Match Rate | 100.0% (16/16) | ≥ 90.0% | ✅ PASS |
+| Precomputed Neighbours (≤ 10 km) | 20 pairs | Complete Graph | ✅ PASS |
 
 ## Sub-District Coverage (Talukas)
 - Haveli (LGD: 4201)
