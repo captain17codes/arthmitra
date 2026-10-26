@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import advisory, auth, beneficiaries, cases, dashboard, geo, meta
+from .routers import advisory, auth, beneficiaries, cases, dashboard, dpr, geo, meta
 
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ app.include_router(beneficiaries.router)
 app.include_router(cases.router)
 app.include_router(dashboard.router)
 app.include_router(advisory.router)
+app.include_router(dpr.router)
 
 
 @app.get("/health", tags=["Health"])
