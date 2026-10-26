@@ -2,7 +2,7 @@
 Unit tests for 🔒 PII encryption helper (DPDP Act 2023 compliance).
 """
 
-from app.security import encrypt_text, decrypt_text, EncryptedString
+from app.security import EncryptedString, decrypt_text, encrypt_text
 
 
 def test_encryption_roundtrip_ascii():

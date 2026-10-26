@@ -3,6 +3,7 @@ Verify Alembic migrations up and down cleanly.
 """
 
 import os
+
 from alembic import command
 from alembic.config import Config
 

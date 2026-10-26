@@ -8,34 +8,22 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
-from app.seed import seed_all, V1_BUSINESS_TYPES, V1_SCHEMES
+from app.seed import V1_BUSINESS_TYPES, V1_SCHEMES, seed_all
 from models import (
-    Organization,
-    User,
-    Village,
-    VillageNeighbour,
-    StateParam,
-    HcesShare,
-    BusinessType,
-    Benchmark,
-    Scheme,
-    SchemeVersion,
     Beneficiary,
-    Consent,
+    BusinessType,
     Case,
-    CaseInput,
-    Evaluation,
-    Advisory,
-    DprDocument,
-    AuditLog,
-    ProcessingLog,
-    DeletionRequest,
-    OrgType,
-    UserRole,
     CaseStatus,
-    TriState,
+    Consent,
     ConsentMethod,
-    BusinessSector,
+    Organization,
+    OrgType,
+    ProcessingLog,
+    Scheme,
+    TriState,
+    User,
+    UserRole,
+    Village,
 )
 
 
