@@ -1,0 +1,43 @@
+code: STANDUP_INDIA
+name:
+  en: "Stand-Up India Scheme"
+  mr: "स्टँड-अप इंडिया योजना"
+  hi: "स्टैंड-अप इंडिया योजना"
+agency: "SIDBI / DFS"
+status: verified
+source:
+  url: "https://www.standupmitra.in/"
+  date: "2026-05-15"
+channel:
+  via: ["Scheduled Commercial Banks"]
+  apply_at: "standupmitra.in / Bank branch"
+eligibility:
+  - {field: category, op: in, value: ["SC", "ST", "Woman"], reason: "needs_sc_st_or_woman"}
+  - {field: age, op: gte, value: 18, reason: "min_age_18"}
+  - {field: project_cost, op: gte, value: 1000000, reason: "project_min_10l"}
+  - {field: project_cost, op: lte, value: 10000000, reason: "project_upto_1cr"}
+  - {field: enterprise_type, op: eq, value: "greenfield", reason: "must_be_greenfield"}
+negative_list: []
+finance:
+  loan_share: 0.75
+  loan_cap: 7500000
+  min_own_share: 0.10
+  min_project_cost: 1000000
+  max_project_cost: 10000000
+  subsidy: null
+  interest:
+    type: bank_rate
+    rate: 0.105
+  tenure_months: 84
+  moratorium_months: 18
+  moratorium_interest: simple
+  moratorium_mode_default: capitalise
+  repayment_frequency_months: 1
+documents:
+  - caste_certificate
+  - greenfield_undertaking
+  - project_report_dpr
+  - it_returns_if_any
+tests:
+  - input: {project_cost: 2000000, margin: 200000}
+    expect: {loan: 1500000}

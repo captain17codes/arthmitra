@@ -1,0 +1,37 @@
+code: VNVJNTDC
+name:
+  en: "Vasantrao Naik VJNT Dev Corp Scheme"
+  mr: "वसंतराव नाईक विमुक्त जाती व भटक्या जमाती विकास महामंडळ"
+  hi: "वसंतराव नाईक विमुक्त जाति एवं घुमंतू जनजाति विकास निगम"
+agency: "VNVJNTDC (Maharashtra)"
+status: unverified
+source:
+  url: "https://sjsa.maharashtra.gov.in/"
+  date: "2026-02-10"
+channel:
+  via: ["District VNVJNTDC Office", "Banks"]
+  apply_at: "District VNVJNTDC Office"
+eligibility:
+  - {field: category, op: in, value: ["VJNT"], reason: "needs_vjnt"}
+  - {field: age, op: between, value: [18, 50], reason: "age_18_50"}
+negative_list: []
+finance:
+  loan_share: 0.85
+  loan_cap: 500000
+  min_own_share: 0.15
+  max_project_cost: 500000
+  subsidy: null
+  interest:
+    type: fixed
+    rate: 0.04
+  tenure_months: 60
+  moratorium_months: 6
+  moratorium_interest: simple
+  moratorium_mode_default: capitalise
+  repayment_frequency_months: 3
+documents:
+  - vjnt_caste_certificate
+  - income_certificate
+tests:
+  - input: {project_cost: 200000}
+    expect: {loan: 170000}
