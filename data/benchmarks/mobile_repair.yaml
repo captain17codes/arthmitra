@@ -1,0 +1,67 @@
+business_code: mobile_repair
+name:
+  en: "Mobile Phone Repair & Accessories"
+  mr: "मोबाईल दुरुस्ती"
+  hi: "मोबाइल रिपेयरिंग"
+sector: service
+hces_category: repair_and_maintenance
+viable_range:
+  min: 50000
+  max: 200000
+capex:
+  smd_rework_station_and_multimeter:
+    value: 18000
+    unit: INR
+    region: Maharashtra
+    source_title: "Hardware Tools Catalog"
+    source_year: 2025
+    confidence: secondary
+  microscope_and_display_separator:
+    value: 15000
+    unit: INR
+    region: Maharashtra
+    source_title: "Hardware Tools Catalog"
+    source_year: 2025
+    confidence: secondary
+  accessories_and_spares_stock:
+    value: 40000
+    unit: INR
+    region: Maharashtra
+    source_title: "Estimate"
+    source_year: 2026
+    confidence: estimate
+revenue_parameters:
+  daily_repairs:
+    value: 4
+    unit: repairs/day
+    confidence: estimate
+  average_repair_margin:
+    value: 280.0
+    unit: INR/repair
+    confidence: estimate
+  daily_accessories_profit:
+    value: 250.0
+    unit: INR/day
+    confidence: estimate
+  working_days_per_month:
+    value: 26
+    unit: days/month
+    confidence: estimate
+cost_parameters:
+  rent_monthly:
+    value: 2500
+    unit: INR/month
+    confidence: estimate
+  electricity_and_internet_monthly:
+    value: 1000
+    unit: INR/month
+    confidence: estimate
+  spoilage_and_tools_monthly:
+    value: 600
+    unit: INR/month
+    confidence: estimate
+capacity_ramp: [0.60, 0.70, 0.80, 0.90, 0.90]
+income_start_month: 1
+depreciation_rate: 0.10
+udhar_default_pct: 0.15
+seasonality: [1.0, 1.0, 1.0, 1.0, 1.05, 1.0, 1.0, 1.0, 1.0, 1.10, 1.05, 1.0]

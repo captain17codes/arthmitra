@@ -1,0 +1,69 @@
+business_code: dairy
+name:
+  en: "Dairy Farming (2 Animals)"
+  mr: "दुग्धव्यवसाय (२ जनावरे)"
+  hi: "डेयरी व्यवसाय (२ पशु)"
+sector: agri_allied
+hces_category: milk_and_milk_products
+viable_range:
+  min: 160000
+  max: 250000
+capex:
+  animals_outlay:
+    value: 197840
+    unit: INR
+    region: Maharashtra
+    source_title: "NABARD Maharashtra RO Unit Cost 2025-26"
+    source_url: "https://www.nabard.org/auth/writereaddata/tender/pub_2105250400341558.pdf"
+    source_year: 2025
+    confidence: official
+  shed_and_equipment:
+    value: 25000
+    unit: INR
+    region: Maharashtra
+    source_title: "NABARD DEDS Dairy Model"
+    source_url: "https://www.pashudhanpraharee.com/wp-content/uploads/2019/08/Dairy_deds-project-report.pdf"
+    source_year: 2024
+    confidence: secondary
+revenue_parameters:
+  num_animals:
+    value: 2
+    unit: animals
+    confidence: official
+  daily_milk_yield_litres:
+    value: 12.0
+    unit: litres/day/animal
+    source_title: "NABARD MH Unit Cost Norms"
+    source_year: 2024
+    confidence: official
+  lactation_days:
+    value: 280
+    unit: days/year
+    source_title: "NABARD DEDS Model"
+    source_year: 2024
+    confidence: official
+  milk_procurement_price:
+    value: 40.80
+    unit: INR/litre
+    region: Pune, Maharashtra
+    source_title: "Katraj Dairy Price Revision Sep 2026"
+    source_year: 2026
+    confidence: official
+cost_parameters:
+  fodder_and_feed_share:
+    value: 0.55
+    unit: ratio_of_revenue
+    confidence: secondary
+  veterinary_and_breeding_annual:
+    value: 8000
+    unit: INR/year
+    confidence: secondary
+  fixed_power_and_shed_monthly:
+    value: 1500
+    unit: INR/month
+    confidence: estimate
+capacity_ramp: [0.70, 0.80, 0.85, 0.90, 0.90]
+income_start_month: 1
+depreciation_rate: 0.10
+udhar_default_pct: 0.10
+seasonality: [1.0, 1.0, 0.90, 0.85, 0.85, 0.90, 1.05, 1.10, 1.15, 1.10, 1.05, 1.05]

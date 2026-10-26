@@ -1,0 +1,71 @@
+business_code: flour_mill
+name:
+  en: "Flour & Masala Mill"
+  mr: "पिठाची व मसाल्याची गिरणी"
+  hi: "आटा एवं मसाला चक्की"
+sector: manufacturing
+hces_category: food_and_groceries
+viable_range:
+  min: 80000
+  max: 250000
+capex:
+  flour_mill_machinery:
+    value: 65000
+    unit: INR
+    region: Maharashtra
+    source_title: "SELCO Foundation Model & Machinery Price List"
+    source_year: 2024
+    confidence: secondary
+  masala_pulverizer:
+    value: 35000
+    unit: INR
+    region: Maharashtra
+    source_title: "Market Catalog"
+    source_year: 2025
+    confidence: secondary
+  electrical_connection_3phase:
+    value: 20000
+    unit: INR
+    region: Maharashtra
+    source_title: "MSEDCL Norms"
+    source_year: 2025
+    confidence: secondary
+revenue_parameters:
+  daily_flour_milling_kg:
+    value: 75.0
+    unit: kg/day
+    confidence: secondary
+  milling_rate_per_kg:
+    value: 6.0
+    unit: INR/kg
+    confidence: secondary
+  daily_masala_milling_kg:
+    value: 12.0
+    unit: kg/day
+    confidence: secondary
+  masala_rate_per_kg:
+    value: 25.0
+    unit: INR/kg
+    confidence: secondary
+  working_days_per_month:
+    value: 28
+    unit: days/month
+    confidence: estimate
+cost_parameters:
+  electricity_commercial_monthly:
+    value: 3200
+    unit: INR/month
+    confidence: secondary
+  rent_monthly:
+    value: 2000
+    unit: INR/month
+    confidence: estimate
+  machinery_maintenance_monthly:
+    value: 800
+    unit: INR/month
+    confidence: estimate
+capacity_ramp: [0.65, 0.75, 0.85, 0.90, 0.90]
+income_start_month: 1
+depreciation_rate: 0.10
+udhar_default_pct: 0.10
+seasonality: [1.0, 1.0, 1.05, 1.10, 1.10, 0.95, 0.90, 0.90, 1.05, 1.25, 1.15, 1.0] # Harvesting & Diwali peak
