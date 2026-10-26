@@ -1,0 +1,126 @@
+schema_version: "1.0.0"
+source_reference: "KVIC, PMEGP, NABARD Model Project Profiles (Indicative)"
+source_url: "https://www.kviconline.gov.in/pmegp"
+verified_date: "2026-10-26"
+
+benchmarks:
+  dairy:
+    key: "dairy"
+    label: "Dairy Farming"
+    label_hi: "डेयरी फार्मिंग"
+    label_mr: "दुग्धव्यवसाय"
+    capex_share: 0.75
+    wc_months: 1.0
+    opex_share: 0.68
+    net_margin: 0.25
+    breakeven_month: 4
+    revenue_multiple: 2.0
+    income_start_month: 1
+    osm_tags: ["shop=dairy"]
+    people_per_unit: 600
+    complements: ["Fodder Supply", "Biogas Plant"]
+  kirana:
+    key: "kirana"
+    label: "Kirana / Retail"
+    label_hi: "किराना / खुदरा दुकान"
+    label_mr: "किराणा / किरकोळ दुकान"
+    capex_share: 0.25
+    wc_months: 3.0
+    opex_share: 0.85
+    net_margin: 0.12
+    breakeven_month: 6
+    revenue_multiple: 5.0
+    income_start_month: 1
+    osm_tags: ["shop=convenience", "shop=general", "shop=supermarket", "shop=grocery"]
+    people_per_unit: 250
+    complements: ["Mobile Recharge & Bill Pay", "Agri Input Store"]
+  tailoring:
+    key: "tailoring"
+    label: "Tailoring & Apparel"
+    label_hi: "सिलाई एवं परिधान"
+    label_mr: "शिवणकाम व वस्त्रोद्योग"
+    capex_share: 0.60
+    wc_months: 2.0
+    opex_share: 0.50
+    net_margin: 0.38
+    breakeven_month: 3
+    revenue_multiple: 1.5
+    income_start_month: 1
+    osm_tags: ["shop=tailor", "craft=tailor"]
+    people_per_unit: 800
+    complements: ["Fabric Store", "Embroidery Unit"]
+  poultry:
+    key: "poultry"
+    label: "Broiler Poultry"
+    label_hi: "ब्रायलर मुर्गी पालन"
+    label_mr: "कुक्कुटपालन"
+    capex_share: 0.65
+    wc_months: 1.5
+    opex_share: 0.74
+    net_margin: 0.21
+    breakeven_month: 5
+    revenue_multiple: 4.0
+    income_start_month: 2
+    osm_tags: ["shop=butcher", "shop=poultry"]
+    people_per_unit: 1500
+    complements: ["Egg Supply Store", "Feed & Poultry Equipment"]
+  goatery:
+    key: "goatery"
+    label: "Goatery"
+    label_hi: "बकरी पालन"
+    label_mr: "शेळीपालन"
+    capex_share: 0.80
+    wc_months: 3.0
+    opex_share: 0.45
+    net_margin: 0.43
+    breakeven_month: 15
+    revenue_multiple: 1.0
+    income_start_month: 14
+    osm_tags: ["shop=butcher"]
+    people_per_unit: 2000
+    complements: ["Milk Processing", "Vermicompost Unit"]
+  food_processing:
+    key: "food_processing"
+    label: "Flour / Spice Mill"
+    label_hi: "आटा / मसाला चक्की"
+    label_mr: "पीठ / मसाला गिरणी"
+    capex_share: 0.70
+    wc_months: 2.0
+    opex_share: 0.60
+    net_margin: 0.23
+    breakeven_month: 8
+    revenue_multiple: 2.5
+    income_start_month: 2
+    osm_tags: ["craft=miller", "shop=spices"]
+    people_per_unit: 3000
+    complements: ["Packaging Unit", "Agri Input Store"]
+  mobile_repair:
+    key: "mobile_repair"
+    label: "Mobile Repair & Sales"
+    label_hi: "मोबाइल रिपेयरिंग"
+    label_mr: "मोबाईल दुरुस्ती"
+    capex_share: 0.50
+    wc_months: 2.5
+    opex_share: 0.45
+    net_margin: 0.34
+    breakeven_month: 4
+    revenue_multiple: 2.0
+    income_start_month: 1
+    osm_tags: ["shop=mobile_phone", "shop=electronics", "craft=electronics_repair"]
+    people_per_unit: 2500
+    complements: ["Mobile Accessories Store", "Computer Repair"]
+  beauty_parlour:
+    key: "beauty_parlour"
+    label: "Beauty Parlour"
+    label_hi: "ब्यूटी पार्लर"
+    label_mr: "ब्युटी पार्लर"
+    capex_share: 0.55
+    wc_months: 2.0
+    opex_share: 0.40
+    net_margin: 0.45
+    breakeven_month: 3
+    revenue_multiple: 1.8
+    income_start_month: 1
+    osm_tags: ["shop=beauty", "shop=hairdresser"]
+    people_per_unit: 1500
+    complements: ["Saree / Clothing Store", "Mehendi Artist"]

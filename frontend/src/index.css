@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    @apply bg-slate-50 text-slate-900 antialiased font-sans m-0 p-0;
+    min-width: 360px;
+  }
+}
+
+/* Mobile-first viewport container */
+.mobile-viewport {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+}
