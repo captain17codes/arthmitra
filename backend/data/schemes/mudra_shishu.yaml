@@ -1,0 +1,38 @@
+code: MUDRA_SHISHU
+name:
+  en: "Pradhan Mantri Mudra Yojana - Shishu"
+  mr: "मुद्रा योजना - शिशु"
+  hi: "प्रधानमंत्री मुद्रा योजना - शिशु"
+agency: "PMMY / MUDRA"
+status: verified
+source:
+  url: "https://www.mudra.org.in/"
+  date: "2026-03-31"
+channel:
+  via: ["Commercial Banks", "RRBs", "SFBs", "MFIs"]
+  apply_at: "Bank branch / udyamimitra.in"
+eligibility:
+  - {field: age, op: gte, value: 18, reason: "min_age_18"}
+  - {field: project_cost, op: lte, value: 50000, reason: "project_upto_50k"}
+negative_list: []
+finance:
+  loan_share: 1.00
+  loan_cap: 50000
+  min_own_share: 0.00
+  max_project_cost: 50000
+  subsidy: null
+  interest:
+    type: bank_rate
+    rate: 0.10
+  tenure_months: 36
+  moratorium_months: 0
+  moratorium_interest: simple
+  moratorium_mode_default: capitalise
+  repayment_frequency_months: 1
+documents:
+  - identity_proof
+  - address_proof
+  - business_plan_summary
+tests:
+  - input: {margin: 0, project_cost: 50000}
+    expect: {loan: 50000, n: 36}

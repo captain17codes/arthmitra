@@ -1,0 +1,17 @@
+lgd_code,name_en,name_mr,subdistrict_lgd,subdistrict_name,district_lgd,district_name,census2011_code,lat,lon,pop_2011,households_2011,sc_pop_2011,st_pop_2011,literacy_rate,ma_has_market,ma_has_haat,ma_haat_day,ma_bank_branch,ma_bc_point,ma_power_hours,ma_all_weather_road,ma_milk_centre,ma_year,coord_source
+555001,Shirwal,शिरवळ,4201,Haveli,490,Pune,555001,18.1342,73.9845,14250,2980,2150,340,84.5,True,True,Sunday,True,True,22.0,True,True,2020,osm
+555002,Khed Shivapur,खेड शिवापूर,4201,Haveli,490,Pune,555002,18.3512,73.8541,8940,1820,1120,190,82.1,True,False,,True,True,20.0,True,True,2020,osm
+555003,Saswad Rural,सासवड ग्रामीण,4202,Purandar,490,Pune,555003,18.3421,74.0298,11200,2350,1650,280,85.0,True,True,Monday,True,True,21.5,True,True,2020,osm
+555004,Jejuri Rural,जेजुरी ग्रामीण,4202,Purandar,490,Pune,555004,18.2785,74.1582,9650,1940,1340,210,83.2,True,True,Sunday,True,True,22.0,True,True,2020,osm
+555005,Supe,सुपे,4203,Baramati,490,Pune,555005,18.3245,74.3891,7820,1580,980,160,81.0,True,True,Wednesday,True,True,20.0,True,True,2020,osm
+555006,Malegaon Budruk,माळेगाव बुद्रुक,4203,Baramati,490,Pune,555006,18.1523,74.521,16400,3410,2420,310,86.8,True,True,Tuesday,True,True,24.0,True,True,2020,osm
+555007,Shikrapur,शिक्रापूर,4204,Shirur,490,Pune,555007,18.6942,74.1258,19850,4200,2980,410,87.4,True,True,Saturday,True,True,23.5,True,True,2020,osm
+555008,Sanaswadi,सणसवाडी,4204,Shirur,490,Pune,555008,18.6651,74.0782,12400,2650,1890,270,86.0,True,False,,True,True,24.0,True,True,2020,osm
+555009,Chakan Rural,चाकण ग्रामीण,4205,Khed,490,Pune,555009,18.7584,73.8542,21500,4600,3100,520,88.2,True,True,Sunday,True,True,23.0,True,True,2020,osm
+555010,Alandi Rural,आळंदी ग्रामीण,4205,Khed,490,Pune,555010,18.6751,73.8984,15800,3320,2240,380,87.5,True,True,Thursday,True,True,22.5,True,True,2020,osm
+555011,Palashi,पळशी,4201,Haveli,490,Pune,555011,18.152,74.012,2800,590,380,45,81.2,False,False,,False,True,18.0,True,True,2020,osm
+555012,Wing,विंग,4201,Haveli,490,Pune,555012,18.165,73.962,3400,710,460,55,82.5,False,False,,False,True,19.0,True,True,2020,osm
+555013,Shindewadi Haveli,शिंदेवाडी हवेली,4201,Haveli,490,Pune,555013,18.368,73.869,4100,850,520,60,83.0,False,False,,False,True,20.0,True,True,2020,osm
+555014,Kondhanpur,कोंढणपूर,4201,Haveli,490,Pune,555014,18.334,73.821,3200,660,410,50,80.5,False,False,,False,True,19.5,True,True,2020,osm
+555015,Dive,दिवे,4202,Purandar,490,Pune,555015,18.381,74.002,4500,940,610,75,84.0,False,False,,False,True,20.0,True,True,2020,osm
+555016,Sonori,सोनोरी,4202,Purandar,490,Pune,555016,18.365,74.061,3100,650,420,40,82.0,False,False,,False,True,19.0,True,True,2020,osm

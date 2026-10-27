@@ -1,0 +1,69 @@
+business_code: broiler
+name:
+  en: "Broiler Poultry Farming (Small Batch)"
+  mr: "कुक्कुटपालन (ब्रॉयलर)"
+  hi: "मुर्गी पालन (ब्रायलर)"
+sector: agri_allied
+hces_category: meat_and_poultry
+viable_range:
+  min: 150000
+  max: 300000
+capex:
+  shed_construction:
+    value: 120000
+    unit: INR
+    region: Maharashtra
+    source_title: "NABARD Maharashtra Unit Cost 2023-24"
+    source_year: 2024
+    confidence: official
+  drinkers_and_feeders:
+    value: 25000
+    unit: INR
+    region: Maharashtra
+    source_title: "NABARD Poultry Model"
+    source_year: 2024
+    confidence: secondary
+revenue_parameters:
+  batch_size:
+    value: 500
+    unit: birds/batch
+    confidence: secondary
+  batches_per_year:
+    value: 6
+    unit: batches/year
+    confidence: official
+  bird_sale_weight_kg:
+    value: 2.0
+    unit: kg/bird
+    confidence: official
+  live_bird_price_per_kg:
+    value: 110.0
+    unit: INR/kg
+    region: Maharashtra
+    confidence: secondary
+  mortality_rate:
+    value: 0.05
+    unit: ratio
+    confidence: official
+cost_parameters:
+  chick_cost_per_bird:
+    value: 38.0
+    unit: INR/chick
+    confidence: secondary
+  feed_cost_per_bird:
+    value: 120.0
+    unit: INR/bird
+    confidence: secondary
+  medicines_and_litter_per_bird:
+    value: 12.0
+    unit: INR/bird
+    confidence: secondary
+  fixed_power_and_labour_monthly:
+    value: 2000
+    unit: INR/month
+    confidence: estimate
+capacity_ramp: [0.60, 0.75, 0.85, 0.90, 0.90]
+income_start_month: 2
+depreciation_rate: 0.10
+udhar_default_pct: 0.15
+seasonality: [1.10, 1.05, 0.90, 0.85, 0.95, 1.0, 0.90, 0.95, 1.05, 1.10, 1.10, 1.05]

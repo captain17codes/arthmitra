@@ -1,0 +1,40 @@
+code: MPBCDC_SEED
+name:
+  en: "MPBCDC Seed Capital Scheme"
+  mr: "महात्मा फुले महामंडळ बीज भांडवल योजना"
+  hi: "महात्मा फुले निगम बीज पूंजी योजना"
+agency: "MPBCDC (Maharashtra)"
+status: verified
+source:
+  url: "https://mahabharti.in/yojana/margin-money-scheme-for-backward-class/"
+  date: "2026-04-10"
+channel:
+  via: ["District MPBCDC Office", "Nationalized Banks"]
+  apply_at: "MPBCDC District Manager Office"
+eligibility:
+  - {field: category, op: in, value: ["SC"], reason: "needs_sc"}
+  - {field: age, op: between, value: [18, 50], reason: "age_18_50"}
+  - {field: project_cost, op: lte, value: 500000, reason: "project_upto_5l"}
+negative_list: []
+finance:
+  loan_share: 0.75
+  loan_cap: 375000
+  min_own_share: 0.05
+  max_project_cost: 500000
+  subsidy: null
+  interest:
+    type: fixed
+    rate: 0.04
+  tenure_months: 60
+  moratorium_months: 6
+  moratorium_interest: simple
+  moratorium_mode_default: capitalise
+  repayment_frequency_months: 1
+documents:
+  - caste_certificate
+  - income_certificate
+  - ration_card
+  - dpr
+tests:
+  - input: {project_cost: 500000, margin: 25000}
+    expect: {bank_share: 375000, corporation_seed: 100000}

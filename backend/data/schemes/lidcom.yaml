@@ -1,0 +1,37 @@
+code: LIDCOM
+name:
+  en: "LIDCOM Leather Artisans Scheme"
+  mr: "संत रोहिदास चर्मोद्योग व चर्मकार विकास महामंडळ योजना"
+  hi: "संत रोहिदास चर्मकार विकास निगम योजना"
+agency: "LIDCOM (Maharashtra)"
+status: unverified
+source:
+  url: "https://sjsa.maharashtra.gov.in/"
+  date: "2026-02-10"
+channel:
+  via: ["District LIDCOM Office", "Banks"]
+  apply_at: "District LIDCOM Manager"
+eligibility:
+  - {field: category, op: in, value: ["SC"], reason: "needs_sc"}
+  - {field: traditional_artisan_leather, op: eq, value: true, reason: "needs_leather_artisan"}
+negative_list: []
+finance:
+  loan_share: 0.85
+  loan_cap: 500000
+  min_own_share: 0.15
+  max_project_cost: 500000
+  subsidy: null
+  interest:
+    type: fixed
+    rate: 0.04
+  tenure_months: 60
+  moratorium_months: 6
+  moratorium_interest: simple
+  moratorium_mode_default: capitalise
+  repayment_frequency_months: 3
+documents:
+  - caste_certificate
+  - traditional_occupation_proof
+tests:
+  - input: {project_cost: 200000}
+    expect: {loan: 170000}

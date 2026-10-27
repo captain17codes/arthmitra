@@ -1,0 +1,72 @@
+business_code: goatery
+name:
+  en: "Goat Rearing (10+1)"
+  mr: "शेळीपालन (१०+१)"
+  hi: "बकरी पालन (१०+१)"
+sector: agri_allied
+hces_category: meat_and_poultry
+viable_range:
+  min: 120000
+  max: 200000
+capex:
+  breeding_stock:
+    value: 151525
+    unit: INR
+    region: Maharashtra
+    source_title: "NABARD Maharashtra Unit Cost 2025-26 (Osmanabadi/Sangamneri)"
+    source_url: "https://www.nabard.org/auth/writereaddata/tender/pub_2105250400341558.pdf"
+    source_year: 2025
+    confidence: official
+  low_cost_shed:
+    value: 20000
+    unit: INR
+    region: Maharashtra
+    source_title: "NABARD Model Goat Farming Project"
+    source_year: 2024
+    confidence: secondary
+revenue_parameters:
+  num_does:
+    value: 10
+    unit: does
+    confidence: official
+  num_bucks:
+    value: 1
+    unit: bucks
+    confidence: official
+  kids_per_kidding:
+    value: 1.6
+    unit: kids/doe
+    source_title: "NABARD Model Bankable Scheme on Goat"
+    source_year: 2024
+    confidence: official
+  kidding_interval_months:
+    value: 8
+    unit: months
+    confidence: official
+  kid_mortality_rate:
+    value: 0.15
+    unit: ratio
+    confidence: official
+  average_kid_sale_price:
+    value: 7500
+    unit: INR/kid
+    region: Maharashtra
+    confidence: secondary
+cost_parameters:
+  feed_and_fodder_annual:
+    value: 24000
+    unit: INR/year
+    confidence: secondary
+  vaccination_and_medicines_annual:
+    value: 6000
+    unit: INR/year
+    confidence: secondary
+  fixed_shelter_maintenance_monthly:
+    value: 800
+    unit: INR/month
+    confidence: estimate
+capacity_ramp: [0.50, 0.70, 0.85, 0.90, 0.90]
+income_start_month: 12  # Kids must reach saleable weight at 9-12 months! Triggers income-timing warning.
+depreciation_rate: 0.10
+udhar_default_pct: 0.05
+seasonality: [1.0, 1.0, 1.0, 1.0, 1.20, 1.20, 1.0, 1.0, 1.0, 1.10, 1.0, 1.0] # Eid/festive bumps

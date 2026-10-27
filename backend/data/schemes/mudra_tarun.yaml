@@ -1,0 +1,40 @@
+code: MUDRA_TARUN
+name:
+  en: "Pradhan Mantri Mudra Yojana - Tarun"
+  mr: "मुद्रा योजना - तरुण"
+  hi: "प्रधानमंत्री मुद्रा योजना - तरुण"
+agency: "PMMY / MUDRA"
+status: verified
+source:
+  url: "https://www.mudra.org.in/"
+  date: "2026-03-31"
+channel:
+  via: ["Commercial Banks", "RRBs", "SFBs"]
+  apply_at: "Bank branch / udyamimitra.in"
+eligibility:
+  - {field: age, op: gte, value: 18, reason: "min_age_18"}
+  - {field: project_cost, op: gt, value: 500000, reason: "project_above_5l"}
+  - {field: project_cost, op: lte, value: 1000000, reason: "project_upto_10l"}
+negative_list: []
+finance:
+  loan_share: 0.85
+  loan_cap: 1000000
+  min_own_share: 0.15
+  min_project_cost: 500001
+  max_project_cost: 1000000
+  subsidy: null
+  interest:
+    type: bank_rate
+    rate: 0.115
+  tenure_months: 60
+  moratorium_months: 6
+  moratorium_interest: simple
+  moratorium_mode_default: capitalise
+  repayment_frequency_months: 1
+documents:
+  - balance_sheet_2yrs
+  - quotations
+  - tax_returns_or_udyam
+tests:
+  - input: {loan: 800000}
+    expect: {tenure: 60}
