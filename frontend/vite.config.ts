@@ -29,5 +29,17 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    proxy: {
+      "/auth": "http://127.0.0.1:8000",
+      "/api": "http://127.0.0.1:8000",
+      "/health": "http://127.0.0.1:8000",
+      "/beneficiaries": "http://127.0.0.1:8000",
+      "/cases": "http://127.0.0.1:8000",
+      "/geo": "http://127.0.0.1:8000",
+      "/meta": "http://127.0.0.1:8000",
+      "/speech": "http://127.0.0.1:8000",
+      "/admin": "http://127.0.0.1:8000",
+      "/dashboard": "http://127.0.0.1:8000",
+    },
   },
 });
