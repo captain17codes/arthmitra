@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from decimal import Decimal
 from pathlib import Path
 
 import yaml
@@ -173,7 +172,7 @@ async def init_and_seed_database():
                 if yaml_path.name == "stacking.yaml":
                     continue
                 try:
-                    with open(yaml_path, encoding="utf-8") as f:
+                    with open(yaml_path, encoding="utf-8") as f:  # noqa: ASYNC230
                         content = f.read()
                         data = yaml.safe_load(content)
                         code = data.get("scheme_code") or data.get("code")

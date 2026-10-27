@@ -9,7 +9,16 @@ from .routers import admin, advisory, auth, beneficiaries, cases, dashboard, dpr
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup actions
+    # Startup actions: ensure database tables & baseline seed exist
+    from .database import Base, async_session_maker, engine
+    from .seed import seed_all
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        async with async_session_maker() as session:
+            await seed_all(session)
+    except Exception as e:
+        print(f"Startup DB init notice: {e}")
     yield
     # Shutdown actions
 
