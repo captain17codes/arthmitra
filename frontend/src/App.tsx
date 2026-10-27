@@ -22,6 +22,10 @@ import { CalibrationScreen } from "./screens/CalibrationScreen";
 import { ResultsScreen } from "./screens/ResultsScreen";
 import { DprScreen } from "./screens/DprScreen";
 import { AgentProfileScreen } from "./screens/AgentProfileScreen";
+import { SupervisorDashboardScreen } from "./screens/SupervisorDashboardScreen";
+import { AdminSchemeEditorScreen } from "./screens/AdminSchemeEditorScreen";
+import { AdminBenchmarkScreen } from "./screens/AdminBenchmarkScreen";
+import { AdminVillageScreen } from "./screens/AdminVillageScreen";
 
 export const App: React.FC = () => {
   const [lang, setLang] = useState<Language>(
@@ -35,6 +39,9 @@ export const App: React.FC = () => {
   // Active view states
   const [selectedCase, setSelectedCase] = useState<CaseRecord | null>(null);
   const [viewingDpr, setViewingDpr] = useState<boolean>(false);
+  const [adminSubView, setAdminSubView] = useState<
+    "none" | "schemes" | "benchmarks" | "villages"
+  >("none");
 
   // Wizard state for new case
   const [wizardStep, setWizardStep] = useState<
@@ -163,6 +170,32 @@ export const App: React.FC = () => {
             onLogout={handleLogout}
             lang={lang}
           />
+        ) : currentTab === "supervisor" ? (
+          adminSubView === "schemes" ? (
+            <AdminSchemeEditorScreen
+              onBack={() => setAdminSubView("none")}
+              lang={lang}
+            />
+          ) : adminSubView === "benchmarks" ? (
+            <AdminBenchmarkScreen
+              onBack={() => setAdminSubView("none")}
+              lang={lang}
+            />
+          ) : adminSubView === "villages" ? (
+            <AdminVillageScreen
+              onBack={() => setAdminSubView("none")}
+              lang={lang}
+            />
+          ) : (
+            <SupervisorDashboardScreen
+              user={user}
+              cases={cases}
+              onOpenSchemeEditor={() => setAdminSubView("schemes")}
+              onOpenBenchmarkEditor={() => setAdminSubView("benchmarks")}
+              onOpenVillageCoords={() => setAdminSubView("villages")}
+              lang={lang}
+            />
+          )
         ) : currentTab === "new_case" ? (
           /* New Case Wizard */
           <div>
@@ -250,6 +283,7 @@ export const App: React.FC = () => {
             } else {
               setSelectedCase(null);
               setViewingDpr(false);
+              setAdminSubView("none");
               setCurrentTab(tab);
             }
           }}

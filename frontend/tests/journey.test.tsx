@@ -72,4 +72,32 @@ describe("Agent PWA Frontend Journey", () => {
 
     expect(screen.getAllByText("उद्यमी आवेदन").length).toBeGreaterThan(0);
   });
+
+  it("navigates to supervisor dashboard console and opens scheme editor", () => {
+    render(<App />);
+
+    // Tap supervisor bottom nav tab
+    const supervisorTab = screen.getByText("पर्यवेक्षक");
+    fireEvent.click(supervisorTab);
+
+    // Verify supervisor dashboard header
+    expect(
+      screen.getByText("जिल्हा व गट स्तरावरील सूक्ष्म-उद्योग स्थिती")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("बाजार संतृप्तता व स्पर्धा धोके (Saturation Flags)")
+    ).toBeInTheDocument();
+
+    // Click Scheme Rules Editor tool
+    const schemeBtn = screen.getByText(/शासकीय योजना नियम व आवृत्ती/i);
+    fireEvent.click(schemeBtn);
+
+    // Verify scheme editor screen
+    expect(
+      screen.getByText(/शासकीय योजना नियम व आवृत्ती व्यवस्थापन/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/नियम तपासा व चाचणी चालवा/i)
+    ).toBeInTheDocument();
+  });
 });
