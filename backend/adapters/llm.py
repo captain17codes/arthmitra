@@ -47,6 +47,7 @@ class MockLLMAdapter(BaseLLMAdapter):
         # Bad number injection for testing validator
         injected_bad_val = 999999.0 if self.should_inject_bad_number else None
 
+        res: dict[str, Any]
         if language == "mr":
             res = {
                 "market_reach": f"{village} मध्ये {biz_name} साठी ग्राहकांची चांगली मागणी आहे.",
@@ -125,7 +126,7 @@ class MockLLMAdapter(BaseLLMAdapter):
             }
 
         if injected_bad_val is not None:
-            res["market_reach"] += f" Unauthorized estimate: ₹{injected_bad_val:,.0f}."
+            res["market_reach"] = str(res["market_reach"]) + f" Unauthorized estimate: ₹{injected_bad_val:,.0f}."
 
         return res
 

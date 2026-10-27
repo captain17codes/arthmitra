@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
+from typing import Any, TypedDict
 
 # Annual population growth rate projections (Census 2011 to 2026+)
 # Source: Office of the Registrar General & Census Commissioner, Population Projections Report for Maharashtra
@@ -52,8 +52,15 @@ CIRCUITY_FACTOR = {
 
 MAX_CATCHMENT_DISTANCE_KM = 10.0
 
+class MPCERural(TypedDict):
+    central: Decimal
+    min: Decimal
+    max: Decimal
+    source: str
+
+
 # MoSPI HCES 2023-24 Rural Maharashtra Monthly Per Capita Consumption Expenditure (₹/person/month)
-MPCE_MAHARASHTRA_RURAL = {
+MPCE_MAHARASHTRA_RURAL: MPCERural = {
     "central": Decimal("3322"),
     "min": Decimal("2950"),
     "max": Decimal("3850"),
