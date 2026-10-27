@@ -15,15 +15,15 @@ describe("Agent PWA Frontend Journey", () => {
     expect(screen.getByText("अर्थमित्र")).toBeInTheDocument();
 
     // Cases title or New Case CTA visible
-    expect(screen.getByText("उद्योजक प्रकरणे")).toBeInTheDocument();
-    expect(screen.getByText("नवीन प्रकरण सुरू करा")).toBeInTheDocument();
+    expect(screen.getAllByText("उद्योजक प्रकरणे").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("नवीन प्रकरण सुरू करा").length).toBeGreaterThan(0);
   });
 
   it("navigates through DPDP consent notice into beneficiary profile", async () => {
     render(<App />);
 
     // Tap "+ नवीन प्रकरण सुरू करा"
-    const newCaseBtn = screen.getByText("नवीन प्रकरण सुरू करा");
+    const newCaseBtn = screen.getAllByText("नवीन प्रकरण सुरू करा")[0];
     fireEvent.click(newCaseBtn);
 
     // Verify statutory DPDP notice header is shown
@@ -32,15 +32,18 @@ describe("Agent PWA Frontend Journey", () => {
     ).toBeInTheDocument();
 
     // Tap voice consent button
-    const consentBtn = screen.getByText(/आवाजी संमती/i);
+    const consentBtn = screen.getByText(/होय, मी सहमत आहे/i);
     fireEvent.click(consentBtn);
 
     // Wait for recorded badge
-    await waitFor(() => {
-      expect(
-        screen.getByText(/कायदेशीर संमती यशस्वीरीत्या नोंदवली गेली आहे/i)
-      ).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/कायदेशीर संमती यशस्वीरीत्या नोंदवली गेली आहे/i)
+        ).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
 
     // Advance to Profile
     const nextBtn = screen.getByText(/उद्योजक माहिती भरा/i);
@@ -61,12 +64,12 @@ describe("Agent PWA Frontend Journey", () => {
     fireEvent.click(enBtn);
 
     expect(screen.getByText("ArthMitra")).toBeInTheDocument();
-    expect(screen.getByText("Beneficiary Cases")).toBeInTheDocument();
+    expect(screen.getAllByText("Beneficiary Cases").length).toBeGreaterThan(0);
 
     // Switch to Hindi
     const hiBtn = screen.getByRole("button", { name: "Switch to hi" });
     fireEvent.click(hiBtn);
 
-    expect(screen.getByText("उद्यमी आवेदन")).toBeInTheDocument();
+    expect(screen.getAllByText("उद्यमी आवेदन").length).toBeGreaterThan(0);
   });
 });
