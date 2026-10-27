@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { BusinessType, CalibrationData, Language } from "../types";
 import { translations } from "../i18n";
+import { VoiceFieldInput } from "../components/VoiceFieldInput";
 
 interface Props {
   business: BusinessType;
@@ -117,17 +118,15 @@ export const CalibrationScreen: React.FC<Props> = ({
         {business.code === "dairy" ? (
           <div className="p-3.5 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-3">
             <div>
-              <label className="block text-xs font-bold text-slate-800 mb-1">
-                {t.milkRateLabel}
-              </label>
-              <input
+              <VoiceFieldInput
+                label={t.milkRateLabel}
                 type="number"
                 min={25}
                 max={60}
                 value={milkRate}
-                onChange={(e) => setMilkRate(parseInt(e.target.value) || 38)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white min-h-[44px]"
-                required
+                onChange={(val) => setMilkRate(Number(val) || 38)}
+                language={lang}
+                suffix="₹/L"
               />
             </div>
 
@@ -164,17 +163,15 @@ export const CalibrationScreen: React.FC<Props> = ({
         ) : (
           <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
             <div>
-              <label className="block text-xs font-bold text-slate-800 mb-1">
-                {t.dailyCustomersLabel}
-              </label>
-              <input
+              <VoiceFieldInput
+                label={t.dailyCustomersLabel}
                 type="number"
                 min={5}
                 max={500}
                 value={dailyCustomers}
-                onChange={(e) => setDailyCustomers(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 min-h-[48px]"
-                required
+                onChange={(val) => setDailyCustomers(Number(val) || 0)}
+                language={lang}
+                suffix="ग्राहक"
               />
             </div>
 
@@ -199,15 +196,14 @@ export const CalibrationScreen: React.FC<Props> = ({
 
               {!ownPremises && (
                 <div className="pt-2">
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    {t.monthlyRentLabel}
-                  </label>
-                  <input
+                  <VoiceFieldInput
+                    label={t.monthlyRentLabel}
                     type="number"
                     step={500}
                     value={rent}
-                    onChange={(e) => setRent(parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 min-h-[44px]"
+                    onChange={(val) => setRent(Number(val) || 0)}
+                    language={lang}
+                    suffix="₹/महिना"
                   />
                 </div>
               )}

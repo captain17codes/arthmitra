@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AlertCircle,
   Award,
@@ -10,6 +10,8 @@ import {
   Sliders,
   TrendingUp,
   Users,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { CaseRecord, EvaluationResult, Language, SchemePackage } from "../types";
 import { formatINR, formatNumberIN, translations } from "../i18n";
@@ -37,6 +39,46 @@ export const ResultsScreen: React.FC<Props> = ({
 
   const [selectedSchedulePkg, setSelectedSchedulePkg] =
     useState<SchemePackage | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+
+  useEffect(() => {
+    return () => {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const handleToggleSpeakResults = () => {
+    if (!("speechSynthesis" in window)) return;
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const schemeName = topSchemes.length > 0 ? topSchemes[0].scheme_code : "योजना";
+    const emi = topSchemes.length > 0 ? Math.round(topSchemes[0].monthly_emi) : 0;
+    const biz = lang === "mr" ? caseRecord.business.name_mr : caseRecord.business.name_en;
+
+    let spokenText = "";
+    if (lang === "mr") {
+      spokenText = `लाभार्थी ${caseRecord.beneficiary.first_name} यांच्या ${biz} व्यवसायाचे मूल्यांकन पूर्ण झाले. सर्वोत्तम योजना ${schemeName}. मासिक हप्ता ${emi} रुपये. सरासरी DSCR ${dynamicDscr}. व्यवसाय व्यवहार्य आहे.`;
+    } else if (lang === "hi") {
+      spokenText = `लाभार्थी ${caseRecord.beneficiary.first_name} के ${biz} व्यवसाय का मूल्यांकन पूरा हुआ. सर्वोत्तम योजना ${schemeName}. मासिक किस्त ${emi} रुपये. व्यवसाय व्यावहारिक है.`;
+    } else {
+      spokenText = `Evaluation complete for ${caseRecord.beneficiary.first_name}, business ${biz}. Recommended scheme ${schemeName}, monthly EMI ${emi} rupees. The project is viable.`;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(spokenText);
+    utterance.lang = lang === "mr" ? "mr-IN" : lang === "hi" ? "hi-IN" : "en-IN";
+    utterance.rate = 0.95;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
 
   // Udhar stress slider state
   const [currentUdharPct, setCurrentUdharPct] = useState<number>(
@@ -104,28 +146,50 @@ export const ResultsScreen: React.FC<Props> = ({
         </div>
 
         {/* Quick Summary Pill Bar */}
-        <div className="pt-2 border-t border-indigo-700/60 grid grid-cols-3 gap-2 text-center text-[11px]">
-          <div>
-            <span className="text-[10px] text-indigo-300 block">सर्वोत्तम EMI</span>
-            <span className="font-bold text-white">
-              {topSchemes.length > 0 ? formatINR(topSchemes[0].monthly_emi) : "—"}
-            </span>
+        <div className="pt-2 border-t border-indigo-700/60 flex items-center justify-between text-[11px]">
+          <div className="grid grid-cols-3 gap-2 text-center flex-1">
+            <div>
+              <span className="text-[10px] text-indigo-300 block">सर्वोत्तम EMI</span>
+              <span className="font-bold text-white">
+                {topSchemes.length > 0 ? formatINR(topSchemes[0].monthly_emi) : "—"}
+              </span>
+            </div>
+            <div>
+              <span className="text-[10px] text-indigo-300 block">DSCR प्रमाण</span>
+              <span
+                className={`font-bold ${
+                  dynamicDscr >= 1.5 ? "text-emerald-300" : "text-amber-300"
+                }`}
+              >
+                {dynamicDscr}x
+              </span>
+            </div>
+            <div>
+              <span className="text-[10px] text-indigo-300 block">बाजार संधी</span>
+              <span className="font-bold text-teal-300 uppercase">
+                {market.saturation_band}
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="text-[10px] text-indigo-300 block">DSCR प्रमाण</span>
-            <span
-              className={`font-bold ${
-                dynamicDscr >= 1.5 ? "text-emerald-300" : "text-amber-300"
+
+          {/* Voice Read Aloud Button */}
+          <div className="pl-2 border-l border-indigo-700/60 shrink-0">
+            <button
+              type="button"
+              onClick={handleToggleSpeakResults}
+              title="निकाल ऐका (Read aloud summary)"
+              aria-label="Read aloud results summary"
+              className={`p-2 rounded-xl border flex flex-col items-center gap-0.5 transition ${
+                isSpeaking
+                  ? "bg-rose-500 text-white border-rose-400 animate-pulse"
+                  : "bg-indigo-700/80 hover:bg-indigo-600 text-indigo-100 border-indigo-600"
               }`}
             >
-              {dynamicDscr}x
-            </span>
-          </div>
-          <div>
-            <span className="text-[10px] text-indigo-300 block">बाजार संधी</span>
-            <span className="font-bold text-teal-300 uppercase">
-              {market.saturation_band}
-            </span>
+              {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              <span className="text-[9px] font-bold">
+                {isSpeaking ? "थांबवा" : "ऐका"}
+              </span>
+            </button>
           </div>
         </div>
       </div>

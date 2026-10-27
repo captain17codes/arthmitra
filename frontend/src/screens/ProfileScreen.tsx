@@ -8,6 +8,7 @@ import {
   SocialCategory,
 } from "../types";
 import { translations } from "../i18n";
+import { VoiceFieldInput } from "../components/VoiceFieldInput";
 
 interface Props {
   initialProfile?: Partial<BeneficiaryProfile>;
@@ -303,17 +304,17 @@ export const ProfileScreen: React.FC<Props> = ({
         </div>
 
         {/* Existing EMI & Prior Subsidy */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              {t.existingEmiLabel}
-            </label>
-            <input
+            <VoiceFieldInput
+              label={t.existingEmiLabel}
               type="number"
               step={500}
               value={existingEmi}
-              onChange={(e) => setExistingEmi(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 min-h-[48px]"
+              onChange={(val) => setExistingEmi(Number(val) || 0)}
+              language={lang}
+              suffix="₹/महिना"
+              placeholder="0"
             />
           </div>
 

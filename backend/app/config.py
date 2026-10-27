@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.0-flash"
     nominatim_email: str = "arthmitra@example.com"
+    sarvam_api_key: str = ""
+    sarvam_asr_url: str = "https://api.sarvam.ai/speech-to-text"
+    bhashini_api_key: str = ""
+    bhashini_user_id: str = ""
+    bhashini_pipeline_id: str = ""
+    asr_provider: str = "auto"  # "auto", "sarvam", "bhashini", "mock"
 
     # Security
     secret_key: str = "insecure-default-change-in-production-1234567890"
