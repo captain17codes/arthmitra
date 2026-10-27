@@ -325,3 +325,22 @@ async def request_deletion(
         "request_id": del_req.id,
         "message": "Deletion request lodged under DPDP Act; will be processed within statutory period.",
     }
+
+
+@router.post("/{beneficiary_id}/execute-deletion")
+async def execute_deletion_endpoint(
+    beneficiary_id: int,
+    user: CurrentUser,
+    db: DbSession,
+) -> dict[str, Any]:
+    """Execute DPDP deletion workflow, purging PII, audio, DPRs, while keeping processing logs."""
+    from ..privacy.deletion import execute_beneficiary_deletion
+
+    res = await db.execute(
+        select(Beneficiary).where(Beneficiary.id == beneficiary_id, Beneficiary.org_id == user.org_id)
+    )
+    b = res.scalar_one_or_none()
+    if not b:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Beneficiary not found")
+
+    return await execute_beneficiary_deletion(db=db, beneficiary_id=beneficiary_id, actor_id=user.id)

@@ -369,14 +369,14 @@ async def update_benchmark(
         raise HTTPException(status_code=404, detail="Benchmark not found")
 
     old_val = float(b.value)
-    setattr(b, "value", payload.value)
-    setattr(b, "unit", payload.unit)
-    setattr(b, "region", payload.region)
-    setattr(b, "source_title", payload.source_title)
-    setattr(b, "source_url", payload.source_url)
-    setattr(b, "source_year", payload.source_year)
-    setattr(b, "confidence", payload.confidence)
-    setattr(b, "version", payload.version)
+    b.value = payload.value
+    b.unit = payload.unit
+    b.region = payload.region
+    b.source_title = payload.source_title
+    b.source_url = payload.source_url
+    b.source_year = payload.source_year
+    b.confidence = payload.confidence
+    b.version = payload.version
 
     await log_audit(
         db,
@@ -451,9 +451,9 @@ async def update_village_coords(
     old_lat = v.lat
     old_lon = v.lon
 
-    setattr(v, "lat", payload.lat)
-    setattr(v, "lon", payload.lon)
-    setattr(v, "coord_source", CoordSource.MANUAL)
+    v.lat = payload.lat
+    v.lon = payload.lon
+    v.coord_source = CoordSource.MANUAL
 
     await log_audit(
         db,
