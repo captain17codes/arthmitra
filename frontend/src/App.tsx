@@ -193,8 +193,10 @@ export const App: React.FC = () => {
         isOnline={isOnline}
       />
 
+      <div className="flex-1 flex flex-col lg:flex-row">
       {/* Main Container */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto lg:order-2">
+        <div className={user && currentTab === "new_case" ? "lg:max-w-2xl lg:mx-auto lg:py-6" : user ? "lg:max-w-6xl lg:mx-auto lg:px-6 lg:py-6" : "lg:max-w-md lg:mx-auto lg:py-10"}>
         {!user ? (
           <LoginScreen lang={lang} onLoginSuccess={handleLoginSuccess} />
         ) : currentTab === "profile" ? (
@@ -303,9 +305,10 @@ export const App: React.FC = () => {
             lang={lang}
           />
         )}
+        </div>
       </main>
 
-      {/* Persistent Bottom Nav (when logged in) */}
+      {/* Bottom nav on phones, left sidebar on desktop */}
       {user && (
         <BottomNav
           currentTab={currentTab}
@@ -322,6 +325,7 @@ export const App: React.FC = () => {
           lang={lang}
         />
       )}
+      </div>
     </div>
   );
 };

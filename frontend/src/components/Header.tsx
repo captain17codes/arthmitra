@@ -21,7 +21,7 @@ export const Header: React.FC<Props> = ({
   const t = translations[lang];
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-xs border-b border-slate-200 px-3 py-2.5 shadow-2xs">
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-xs border-b border-slate-200 px-3 py-2.5 shadow-2xs lg:px-6">
       <div className="flex items-center justify-between gap-2">
         {/* Brand */}
         <div className="flex items-center gap-2">

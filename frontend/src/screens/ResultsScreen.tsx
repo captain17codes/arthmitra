@@ -166,7 +166,7 @@ export const ResultsScreen: React.FC<Props> = ({ caseRecord, onCaseUpdated, onGo
   ];
 
   return (
-    <div className="p-3 sm:p-4 space-y-3.5 pb-20">
+    <div className="p-3 sm:p-4 space-y-3.5 pb-20 lg:pb-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-2xl p-4 text-white shadow-md space-y-2">
         <div className="flex items-start justify-between gap-2">
@@ -252,9 +252,11 @@ export const ResultsScreen: React.FC<Props> = ({ caseRecord, onCaseUpdated, onGo
             </div>
           )}
 
-          {top.map((pkg, idx) => (
-            <PackageCard key={pkg.scheme_code} pkg={pkg} idx={idx} lang={lang} onSchedule={() => setSchedulePkg(pkg)} />
-          ))}
+          <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
+            {top.map((pkg, idx) => (
+              <PackageCard key={pkg.scheme_code} pkg={pkg} idx={idx} lang={lang} onSchedule={() => setSchedulePkg(pkg)} />
+            ))}
+          </div>
 
           {out.rules.other_eligible.length > 0 && (
             <div className="text-[11px] text-slate-600 px-1">

@@ -16,3 +16,12 @@
   min-height: 100vh;
   margin: 0 auto;
 }
+
+/* Desktop / laptop: full-width app with a sidebar instead of a phone column. */
+@media (min-width: 1024px) {
+  .mobile-viewport {
+    max-width: none;
+    border: 0;
+    box-shadow: none;
+  }
+}

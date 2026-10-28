@@ -116,9 +116,9 @@ export const CaseListScreen: React.FC<Props> = ({
       </div>
 
       {/* Cases List */}
-      <div className="space-y-3">
+      <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4">
         {filteredCases.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-slate-200 space-y-2">
+          <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-slate-200 space-y-2 lg:col-span-full">
             <p className="text-sm font-bold text-slate-700">{t.emptyCases}</p>
             <p className="text-xs text-slate-500">{t.emptyCasesSub}</p>
             <button
