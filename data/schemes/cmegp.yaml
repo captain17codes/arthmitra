@@ -11,25 +11,53 @@ source:
 channel:
   via: ["District Industries Centre (DIC)", "KVIB", "Banks"]
   apply_at: "maha-cmegp.gov.in"
+capital_subsidy: true
+# Special category as listed on the verified source (SC/ST/women/ex-servicemen/differently abled).
+# TODO(verify): the state GR may also include OBC/VJNT/minorities — confirm with DIC before adding.
+special:
+  categories: ["SC", "ST"]
+  female: true
+  disability: true
 eligibility:
-  - {field: age, op: between, value: [18, 50], reason: "age_18_50"}
+  - {field: state, op: eq, value: "Maharashtra", reason: "maharashtra_residents_only"}
   - {field: prior_subsidy, op: eq, value: "no", reason: "prior_subsidy_ineligible"}
+  - {field: is_new_enterprise, op: is_true, reason: "new_units_only"}
+  # Age 18–45; special category gets 5 years relaxation (18–50)
+  - {field: age, op: between, value: [18, 45], reason: "age_18_45", when: [{field: is_special, op: is_false}]}
+  - {field: age, op: between, value: [18, 50], reason: "age_18_50_special", when: [{field: is_special, op: is_true}]}
+  # Project cost limits: manufacturing ₹50 L; service/agro/other ₹10 L
+  - {field: project_cost, op: lte, value: 5000000, reason: "project_upto_50l_manufacturing", when: [{field: business_sector, op: in, value: ["manufacturing"]}]}
+  - {field: project_cost, op: lte, value: 1000000, reason: "project_upto_10l_service", when: [{field: business_sector, op: not_in, value: ["manufacturing"]}]}
+  # 7th pass for ₹10–25 L, 10th pass above ₹25 L
+  - {field: education_years, op: gte, value: 7, reason: "needs_7th_pass_above_10l", when: [{field: project_cost, op: gt, value: 1000000}]}
+  - {field: education_years, op: gte, value: 10, reason: "needs_10th_pass_above_25l", when: [{field: project_cost, op: gt, value: 2500000}]}
 negative_list:
   - "meat_shop"
   - "liquor_production"
   - "tobacco"
 finance:
-  loan_share: 0.95
-  loan_cap: 4750000
-  min_own_share: 0.05
+  loan_share: 0.90
+  loan_share_is_remainder: true   # bank finances 90% (general) / 95% (special) incl. subsidy in FDR
+  min_own_share: 0.10
+  min_own_share_special: 0.05
   max_project_cost: 5000000
+  max_project_cost_by_sector:
+    manufacturing: 5000000
+    service: 1000000
+    trading: 1000000
+    agri_allied: 1000000
   subsidy:
     treatment: fdr_3yr
     adjust_month: 36
-    cap: 1750000
+    rate_by:
+      general_urban: 0.15
+      general_rural: 0.25
+      special_urban: 0.25
+      special_rural: 0.35
   interest:
     type: bank_rate
     rate: 0.10
+  bank_decides: ["interest", "tenure", "moratorium"]
   tenure_months: 84
   moratorium_months: 6
   moratorium_interest: simple

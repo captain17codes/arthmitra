@@ -342,7 +342,7 @@ async def test_full_case_lifecycle_and_evaluation(api_client):
     # Top package checks
     top_pkg = summary["top_packages"][0]
     assert "loan_amount" in top_pkg
-    assert "monthly_emi" in top_pkg
+    assert "emi" in top_pkg and top_pkg["emi_frequency_months"] in (1, 3)
     assert "subsidy_amount" in top_pkg
 
     # Viability checks

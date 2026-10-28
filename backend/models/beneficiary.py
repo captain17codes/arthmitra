@@ -36,6 +36,8 @@ class Beneficiary(Base):
     disability_40 = Column(Boolean, nullable=False, default=False)
     occupation_flags = Column(JSON, nullable=True)  # list of str flags, e.g. ["sanitation_worker"]
     income_band = Column(String(50), nullable=False)
+    # Exact annual family income in ₹ (preferred over income_band for eligibility ceilings)
+    annual_family_income = Column(Integer, nullable=True)
     education_band = Column(String(50), nullable=False)
     shg_member = Column(Boolean, nullable=False, default=False)
 

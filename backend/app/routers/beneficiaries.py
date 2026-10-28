@@ -33,7 +33,8 @@ class BeneficiaryCreate(BaseModel):
     category_verified: bool = False
     disability_40: bool = False
     occupation_flags: list[str] | None = Field(default_factory=list)
-    income_band: str = "below_1_lakh"
+    income_band: str = "unknown"
+    annual_family_income: int | None = Field(default=None, ge=0, description="Annual family income in ₹")
     education_band: str = "class_10_pass"
     shg_member: bool = False
     prior_subsidy: TriState = TriState.UNKNOWN
@@ -55,6 +56,7 @@ class BeneficiaryOut(BaseModel):
     disability_40: bool
     occupation_flags: list[str] | None
     income_band: str
+    annual_family_income: int | None = None
     education_band: str
     shg_member: bool
     prior_subsidy: str
@@ -90,6 +92,7 @@ async def create_beneficiary(
         disability_40=req.disability_40,
         occupation_flags=req.occupation_flags,
         income_band=req.income_band,
+        annual_family_income=req.annual_family_income,
         education_band=req.education_band,
         shg_member=req.shg_member,
         prior_subsidy=req.prior_subsidy,
@@ -143,6 +146,7 @@ async def create_beneficiary(
         "disability_40": b.disability_40,
         "occupation_flags": b.occupation_flags,
         "income_band": b.income_band,
+        "annual_family_income": b.annual_family_income,
         "education_band": b.education_band,
         "shg_member": b.shg_member,
         "prior_subsidy": b.prior_subsidy.value,
@@ -187,6 +191,7 @@ async def list_beneficiaries(
             "disability_40": b.disability_40,
             "occupation_flags": b.occupation_flags,
             "income_band": b.income_band,
+            "annual_family_income": b.annual_family_income,
             "education_band": b.education_band,
             "shg_member": b.shg_member,
             "prior_subsidy": b.prior_subsidy.value,
@@ -236,6 +241,7 @@ async def get_beneficiary(
         "disability_40": b.disability_40,
         "occupation_flags": b.occupation_flags,
         "income_band": b.income_band,
+        "annual_family_income": b.annual_family_income,
         "education_band": b.education_band,
         "shg_member": b.shg_member,
         "prior_subsidy": b.prior_subsidy.value,

@@ -249,7 +249,10 @@ async def test_dpr_api_workflow(dpr_client):
     assert "en" in langs
 
     # 5. Download DPR binary
-    dl_res = await client.get(f"/dpr/{doc_id}/download")
+    # Download requires auth (DPRs contain personal data)
+    unauth_res = await client.get(f"/dpr/{doc_id}/download")
+    assert unauth_res.status_code == 401
+    dl_res = await client.get(f"/dpr/{doc_id}/download", headers=headers)
     assert dl_res.status_code == 200
     assert dl_res.headers["content-type"] == "application/pdf"
     assert dl_res.content[:4] == b"%PDF"

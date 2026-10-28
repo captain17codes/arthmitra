@@ -11,6 +11,7 @@ source:
 channel:
   via: ["District LASDC Office", "Banks"]
   apply_at: "District LASDC Office"
+capital_subsidy: true
 eligibility:
   - {field: category, op: in, value: ["SC"], reason: "needs_sc"}
   - {field: age, op: between, value: [18, 50], reason: "age_18_50"}

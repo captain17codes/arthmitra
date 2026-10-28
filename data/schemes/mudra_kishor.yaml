@@ -11,6 +11,8 @@ source:
 channel:
   via: ["Commercial Banks", "RRBs", "SFBs", "MFIs"]
   apply_at: "Bank branch / udyamimitra.in"
+notes:
+  - "MUDRA interest rate and margin are decided by the lending bank; figures shown are typical, not fixed."
 eligibility:
   - {field: age, op: gte, value: 18, reason: "min_age_18"}
   - {field: project_cost, op: gt, value: 50000, reason: "project_above_50k"}
@@ -26,6 +28,7 @@ finance:
   interest:
     type: bank_rate
     rate: 0.11
+  bank_decides: ["interest", "min_own_share", "tenure"]
   tenure_months: 60
   moratorium_months: 6
   moratorium_interest: simple

@@ -11,6 +11,7 @@ source:
 channel:
   via: ["District LIDCOM Office", "Banks"]
   apply_at: "District LIDCOM Manager"
+capital_subsidy: true
 eligibility:
   - {field: category, op: in, value: ["SC"], reason: "needs_sc"}
   - {field: traditional_artisan_leather, op: eq, value: true, reason: "needs_leather_artisan"}

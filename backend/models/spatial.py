@@ -3,7 +3,6 @@ from typing import Any
 from geoalchemy2.types import Geometry
 from sqlalchemy.types import String, TypeDecorator
 
-
 # Set at startup: True only after `CREATE EXTENSION postgis` succeeded.
 POSTGIS_ENABLED = False
 

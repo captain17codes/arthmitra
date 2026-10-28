@@ -11,32 +11,56 @@ source:
 channel:
   via: ["Banks", "KVIC", "KVIB", "DIC"]
   apply_at: "PMEGP e-portal (kviconline.gov.in)"
+capital_subsidy: true
+# Special category per PMEGP guidelines: SC/ST/OBC/minorities/women/ex-servicemen/PwD/transgender etc.
+special:
+  categories: ["SC", "ST", "OBC", "VJNT", "SBC", "Minority"]
+  female: true
+  disability: true
 eligibility:
   - {field: age, op: gte, value: 18, reason: "min_age_18"}
   - {field: prior_subsidy, op: eq, value: "no", reason: "prior_subsidy_ineligible"}
+  - {field: is_new_enterprise, op: is_true, reason: "new_units_only"}
+  # Project cost limits: manufacturing ₹50 L, service/trading ₹20 L
+  - {field: project_cost, op: lte, value: 5000000, reason: "project_upto_50l_manufacturing", when: [{field: business_sector, op: in, value: ["manufacturing"]}]}
+  - {field: project_cost, op: lte, value: 2000000, reason: "project_upto_20l_service", when: [{field: business_sector, op: not_in, value: ["manufacturing"]}]}
+  # 8th pass needed above ₹10 L (manufacturing) / ₹5 L (service)
+  - {field: education_years, op: gte, value: 8, reason: "needs_8th_pass_above_10l", when: [{field: business_sector, op: in, value: ["manufacturing"]}, {field: project_cost, op: gt, value: 1000000}]}
+  - {field: education_years, op: gte, value: 8, reason: "needs_8th_pass_above_5l", when: [{field: business_sector, op: not_in, value: ["manufacturing"]}, {field: project_cost, op: gt, value: 500000}]}
 negative_list:
   - "meat_shop"
   - "liquor_production"
   - "tobacco"
 finance:
-  loan_share: 0.95
-  loan_cap: 4750000
-  min_own_share: 0.05
+  loan_share: 0.90
+  loan_share_is_remainder: true   # loan = project - own share; subsidy is held in FDR inside the loan
+  min_own_share: 0.10             # general category
+  min_own_share_special: 0.05     # special category
   max_project_cost: 5000000
+  max_project_cost_by_sector:
+    manufacturing: 5000000
+    service: 2000000
+    trading: 2000000
+    agri_allied: 2000000
   subsidy:
     treatment: fdr_3yr
     adjust_month: 36
-    cap: 1750000
+    rate_by:
+      general_urban: 0.15
+      general_rural: 0.25
+      special_urban: 0.25
+      special_rural: 0.35
   interest:
     type: bank_rate
     rate: 0.10
+  bank_decides: ["interest", "tenure", "moratorium"]
   tenure_months: 84
   moratorium_months: 6
   moratorium_interest: simple
   moratorium_mode_default: capitalise
   repayment_frequency_months: 1
 documents:
-  - aadhar_consent
+  - identity_proof
   - caste_certificate
   - edp_training_certificate
   - dpr

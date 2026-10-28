@@ -1,6 +1,6 @@
 code: MPBCDC_SEED
 name:
-  en: "MPBCDC Seed Capital Scheme"
+  en: "MPBCDC Seed Capital (Margin Money) Scheme"
   mr: "महात्मा फुले महामंडळ बीज भांडवल योजना"
   hi: "महात्मा फुले निगम बीज पूंजी योजना"
 agency: "MPBCDC (Maharashtra)"
@@ -11,29 +11,53 @@ source:
 channel:
   via: ["District MPBCDC Office", "Nationalized Banks"]
   apply_at: "MPBCDC District Manager Office"
+capital_subsidy: true
+notes:
+  - "Two loans: bank 75% (bank's rate) + MPBCDC seed capital 20% at 4% (includes a ₹10,000 grant). You pay 5%."
+  - "Income limit not stated on the verified source — confirm with the district office."
 eligibility:
+  - {field: state, op: eq, value: "Maharashtra", reason: "maharashtra_residents_only"}
   - {field: category, op: in, value: ["SC"], reason: "needs_sc"}
   - {field: age, op: between, value: [18, 50], reason: "age_18_50"}
+  - {field: prior_subsidy, op: eq, value: "no", reason: "prior_subsidy_ineligible"}
+  - {field: project_cost, op: gte, value: 50000, reason: "project_min_50k"}
   - {field: project_cost, op: lte, value: 500000, reason: "project_upto_5l"}
 negative_list: []
 finance:
-  loan_share: 0.75
-  loan_cap: 375000
+  loan_share: 0.95          # bank 75% + corporation 20%
   min_own_share: 0.05
+  min_project_cost: 50000
   max_project_cost: 500000
   subsidy: null
   interest:
-    type: fixed
-    rate: 0.04
+    type: bank_rate
+    rate: 0.10
+  tranches:
+    - name: "Bank loan (75%)"
+      share: 0.75
+      interest: {type: bank_rate, rate: 0.10}
+      tenure_months: 60
+      moratorium_months: 3
+      repayment_frequency_months: 1
+    - name: "MPBCDC seed capital (20%)"
+      share: 0.20
+      interest: {type: fixed, rate: 0.04}
+      tenure_months: 60
+      moratorium_months: 3
+      repayment_frequency_months: 1
+      grant_amount: 10000
+  bank_decides: ["interest", "moratorium"]
   tenure_months: 60
-  moratorium_months: 6
+  moratorium_months: 3
   moratorium_interest: simple
   moratorium_mode_default: capitalise
   repayment_frequency_months: 1
 documents:
   - caste_certificate
+  - caste_validity_certificate
   - income_certificate
-  - ration_card
+  - domicile_certificate_maharashtra
+  - quotation
   - dpr
 tests:
   - input: {project_cost: 500000, margin: 25000}

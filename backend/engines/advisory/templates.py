@@ -14,15 +14,15 @@ def generate_template_advisory(
     Deterministic multilingual template fallback generator.
     Guarantees 100% safety and zero hallucination when LLM is unavailable or fails validation.
     """
-    summary = eval_output.get("summary", {})
-    market = eval_output.get("market", {})
+    summary = (eval_output.get("summary") or {})
+    market = (eval_output.get("market") or {})
     b_name_mr = summary.get("business_name_mr", "व्यवसाय")
     b_name_en = summary.get("business_name_en", "Business")
     proj_cost = summary.get("project_cost", "0")
     top_pkgs = summary.get("top_packages", [])
     top_pkg = top_pkgs[0] if top_pkgs else {}
-    sc_name = top_pkg.get("scheme_name", {}).get("mr", top_pkg.get("scheme_code", "योजना"))
-    emi = top_pkg.get("monthly_emi", "0")
+    sc_name = (top_pkg.get("scheme_name") or {}).get("mr", top_pkg.get("scheme_code", "योजना"))
+    emi = top_pkg.get("emi", top_pkg.get("monthly_emi", "0"))
     loan = top_pkg.get("loan_amount", "0")
     subsidy = top_pkg.get("subsidy_amount", "0")
     dscr = summary.get("average_dscr", "1.5")
@@ -39,7 +39,7 @@ def generate_template_advisory(
 
         opportunities = [
             "स्थानिक पातळीवर गुणवत्तापूर्ण सेवा/उत्पादन दिल्यास नियमित ग्राहकवर्ग तयार होईल.",
-            f"{sc_name} अंतर्गत ₹{subsidy} अनुदानाचा लाभ मिळाल्याने कर्जाचा मासिक भार (EMI ₹{emi}) आवाक्यात राहील.",
+            f"{sc_name} अंतर्गत ₹{subsidy} अनुदानाचा लाभ मिळाल्याने कर्जाचा हप्ता (EMI ₹{emi}) आवाक्यात राहील.",
             "गावातील आठवडे बाजार आणि शेजारील वाड्यांमध्ये थेट विक्रीची संधी आहे.",
         ]
 
@@ -111,7 +111,7 @@ def generate_template_advisory(
 
         opportunities = [
             "Consistent demand from local households and nearby village catchments.",
-            f"Subsidy benefit of ₹{subsidy} under {sc_name} reduces monthly EMI to ₹{emi}.",
+            f"Subsidy benefit of ₹{subsidy} under {sc_name} keeps the instalment at ₹{emi}.",
             "Direct sales during weekly village haats and local markets.",
         ]
 

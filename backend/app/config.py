@@ -27,6 +27,11 @@ class Settings(BaseSettings):
 
     # Security
     secret_key: str = "insecure-default-change-in-production-1234567890"
+    # Optional dedicated key for PII encryption. If unset, it is derived from secret_key
+    # (kept for backward compatibility with data already encrypted that way).
+    encryption_key: str = ""
+    # Comma-separated browser origins allowed to call the API directly (Vercel proxies same-origin).
+    cors_origins: str = ""
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
     notice_version_current: str = "v1.0-2026-04"
@@ -37,5 +42,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+
+INSECURE_DEFAULT_SECRET = "insecure-default-change-in-production-1234567890"
 
 settings = Settings()

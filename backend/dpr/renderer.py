@@ -64,7 +64,7 @@ def render_dpr_pdf(
     font_name = _init_pdf_fonts()
 
     sections = build_dpr_sections(eval_output, input_snapshot, language)
-    summary = eval_output.get("summary", {})
+    summary = (eval_output.get("summary") or {})
     b_name_mr = summary.get("business_name_mr", "व्यवसाय")
     b_name_en = summary.get("business_name_en", "Business")
     v_name = summary.get("village_name", "")

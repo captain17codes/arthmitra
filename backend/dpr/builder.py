@@ -25,11 +25,11 @@ def build_dpr_sections(
     Construct all 12 Bank-Ready Sections required by TECH_SPEC §7.2.
     Contains both Marathi and English data structures for dual-language rendering.
     """
-    summary = eval_output.get("summary", {})
-    viability = eval_output.get("viability", {})
-    inputs = input_snapshot.get("inputs", {})
-    beneficiary = input_snapshot.get("beneficiary", {})
-    village = input_snapshot.get("village", {})
+    summary = (eval_output.get("summary") or {})
+    viability = (eval_output.get("viability") or {})
+    inputs = (input_snapshot.get("inputs") or {})
+    beneficiary = (input_snapshot.get("beneficiary") or {})
+    village = (input_snapshot.get("village") or {})
 
     b_name_en = summary.get("business_name_en", "Micro Enterprise")
     b_name_mr = summary.get("business_name_mr", "सूक्ष्म व्यवसाय")
@@ -39,25 +39,36 @@ def build_dpr_sections(
 
     top_pkgs = summary.get("top_packages", [])
     lead_pkg = top_pkgs[0] if top_pkgs else {}
-    sc_code = lead_pkg.get("scheme_code", "MUDRA")
-    sc_name = lead_pkg.get("scheme_name", {}).get("mr", sc_code)
+    sc_code = lead_pkg.get("scheme_code", "-")
+    sc_name = (lead_pkg.get("scheme_name") or {}).get("mr", sc_code)
     loan_amt = lead_pkg.get("loan_amount", "0")
     sub_amt = lead_pkg.get("subsidy_amount", "0")
     own_margin_req = lead_pkg.get("own_margin_required", margin_avail)
-    rate_pct = lead_pkg.get("annual_rate_pct", "9.0")
-    tenure_m = lead_pkg.get("tenure_months", 60)
-    mora_m = lead_pkg.get("moratorium_months", 6)
-    emi = lead_pkg.get("monthly_emi", "0")
+    rate_pct = lead_pkg.get("annual_rate_pct", "-")
+    tenure_m = lead_pkg.get("tenure_months", "-")
+    mora_m = lead_pkg.get("moratorium_months", "-")
+    emi = lead_pkg.get("emi", lead_pkg.get("monthly_emi", "0"))
+    freq_m = int(lead_pkg.get("emi_frequency_months", 1) or 1)
+    emi_label_en = "per quarter" if freq_m == 3 else "per month"
+    emi_label_mr = "प्रति तिमाही" if freq_m == 3 else "प्रति महिना"
     total_repay = lead_pkg.get("total_repayment", "0")
 
-    avg_dscr = summary.get("average_dscr", "1.50")
-    bep_cap = summary.get("breakeven_capacity_pct", "40.0")
-    nayak_wc = summary.get("nayak_working_capital", {})
-    udhar = summary.get("udhar_stress", {})
-    sat_level = summary.get("market_saturation", "low")
+    avg_dscr = summary.get("average_dscr") or "-"
+    bep_cap = summary.get("breakeven_capacity_pct") or "-"
+    nayak_wc = (summary.get("nayak_working_capital") or {})
+    udhar = (summary.get("udhar_stress") or {})
+    sat_level = summary.get("market_saturation") or "needs_info"
     catch_pop = summary.get("effective_catchment_population", "0")
     cat_demand = summary.get("monthly_category_demand", "0")
-    comp_count = summary.get("competitors_reported", "1")
+    comp_count = summary.get("competitors_reported") or "-"
+    verified_mr = "प्रमाणित" if beneficiary.get("category_verified") else "प्रमाणपत्र तपासणी बाकी"
+    verified_en = "Verified" if beneficiary.get("category_verified") else "Certificate to be verified"
+    income_val = beneficiary.get("annual_family_income")
+    income_txt = format_currency_inr(str(income_val)) if income_val is not None else beneficiary.get("income_band", "-")
+    sat_mr = {"low": "कमी स्पर्धा", "medium": "मध्यम स्पर्धा", "high": "जास्त स्पर्धा — सावधान"}.get(sat_level, "माहिती अपूर्ण")
+    sat_en = {"low": "low competition", "medium": "moderate competition", "high": "high competition — caution"}.get(
+        sat_level, "competitor count not yet entered"
+    )
 
     sections: list[DprSection] = []
 
@@ -70,15 +81,15 @@ def build_dpr_sections(
             content_mr=(
                 f"प्रवर्तकाचे नाव: {beneficiary.get('first_name', 'उद्योजक')}\n"
                 f"वय: {beneficiary.get('age', '-')} वर्षे | लिंग: {beneficiary.get('gender', '-')}\n"
-                f"सामाजिक प्रवर्ग: {beneficiary.get('category', '-')} (प्रमाणित)\n"
-                f"उत्पन्न गट: {beneficiary.get('income_band', '-')}\n"
+                f"सामाजिक प्रवर्ग: {beneficiary.get('category', '-')} ({verified_mr})\n"
+                f"वार्षिक कौटुंबिक उत्पन्न: {income_txt}\n"
                 f"अस्तित्वात असलेले मासिक कर्ज (EMI): {format_currency_inr(beneficiary.get('existing_emi', '0'))}"
             ),
             content_en=(
                 f"Promoter Name: {beneficiary.get('first_name', 'Entrepreneur')}\n"
                 f"Age: {beneficiary.get('age', '-')} Years | Gender: {beneficiary.get('gender', '-')}\n"
-                f"Social Category: {beneficiary.get('category', '-')} (Verified)\n"
-                f"Income Band: {beneficiary.get('income_band', '-')}\n"
+                f"Social Category: {beneficiary.get('category', '-')} ({verified_en})\n"
+                f"Annual Family Income: {income_txt}\n"
                 f"Existing Debt Service (EMI): {format_currency_inr(beneficiary.get('existing_emi', '0'))}/month"
             ),
         )
@@ -93,13 +104,12 @@ def build_dpr_sections(
             content_mr=(
                 f"प्रस्तावित प्रकल्प: {b_name_mr} ({b_name_en})\n"
                 f"प्रकल्प ठिकाण: {v_name} (LGD Code: {village.get('lgd_code', '-')})\n"
-                f"गाव लोकसंख्या (प्रक्षेपित २०२६): {village.get('pop_2011', '-')}\n"
-                f"परिसरातील दळणवळण: पक्का बारमाही रस्ता व वीज पुरवठा उपलब्ध."
+                f"गाव लोकसंख्या (जनगणना २०११): {village.get('pop_2011', '-')}"
             ),
             content_en=(
                 f"Proposed Enterprise: {b_name_en}\n"
                 f"Location: Village {v_name} (LGD Code: {village.get('lgd_code', '-')})\n"
-                f"Projected Catchment: Rural village with road and power infrastructure."
+                f"Village population (Census 2011): {village.get('pop_2011', '-')}"
             ),
         )
     )
@@ -114,13 +124,13 @@ def build_dpr_sections(
                 f"प्रभावी ग्राहक कार्यक्षेत्र लोकसंख्या (Catchment): {catch_pop} व्यक्ती (१० किमी परिसर)\n"
                 f"मासिक वर्गवारी मागणी (HCES २०२३-२४ नुसार): {format_currency_inr(cat_demand)} / महिना\n"
                 f"गावात कार्यरत असलेले प्रतिस्पर्धी: {comp_count} दुकाने / युनिट्स\n"
-                f"बाजार संपृक्तता निर्देशांक (Saturation Level): {sat_level.upper()} (नवीन युनिटसाठी उत्तम वाव)"
+                f"बाजार संपृक्तता निर्देशांक (Saturation Level): {sat_mr}"
             ),
             content_en=(
                 f"Effective Catchment Population: {catch_pop} persons (within 10 km decay radius)\n"
                 f"Monthly Category Demand: {format_currency_inr(cat_demand)} / month (Source: MoSPI HCES 2023-24)\n"
                 f"Active Local Competitors: {comp_count} unit(s) reported\n"
-                f"Market Saturation Level: {sat_level.upper()} (Substantial market headroom)"
+                f"Market Saturation Level: {sat_en}"
             ),
         )
     )
@@ -242,13 +252,13 @@ def build_dpr_sections(
             content_mr=(
                 f"कर्ज रक्कम: {format_currency_inr(loan_amt)} | वार्षिक व्याज दर: {rate_pct}%\n"
                 f"एकूण मुदत: {tenure_m} महिने | सवलत कालावधी (Moratorium): {mora_m} महिने\n"
-                f"अंदाजित मासिक हप्ता (EMI): {format_currency_inr(emi)} / महिना\n"
+                f"हप्ता (EMI): {format_currency_inr(emi)} {emi_label_mr}\n"
                 f"एकूण परतफेड रक्कम: {format_currency_inr(total_repay)}"
             ),
             content_en=(
                 f"Sanctioned Loan: {format_currency_inr(loan_amt)} | Interest Rate: {rate_pct}% p.a.\n"
                 f"Tenure: {tenure_m} months | Moratorium: {mora_m} months\n"
-                f"Estimated Monthly EMI: {format_currency_inr(emi)} / month\n"
+                f"Instalment (EMI): {format_currency_inr(emi)} {emi_label_en}\n"
                 f"Total Principal + Interest Repayable: {format_currency_inr(total_repay)}"
             ),
         )

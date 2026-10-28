@@ -8,7 +8,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-from app.config import settings
 from app.database import Base
 from app.security import hash_pin
 from app.seed import seed_business_types, seed_schemes

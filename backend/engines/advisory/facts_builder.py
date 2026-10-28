@@ -30,12 +30,14 @@ def build_evaluation_facts(
     facts_list: list[FactItem] = []
     allowed_numbers_set: set[float] = set()
 
-    summary = eval_output.get("summary", {})
-    viability = eval_output.get("viability", {})
-    market = eval_output.get("market", {})
-    inputs = input_snapshot.get("inputs", {})
+    summary = (eval_output.get("summary") or {})
+    viability = (eval_output.get("viability") or {})
+    market = (eval_output.get("market") or {})
+    inputs = (input_snapshot.get("inputs") or {})
 
     def add_fact(fact_id: str, label: str, val: Any, unit: str = "", conf: str = "high"):
+        if val is None:  # unknown facts are omitted, never invented
+            return
         facts_list.append(
             FactItem(
                 id=fact_id,
@@ -64,7 +66,8 @@ def build_evaluation_facts(
         add_fact("F07", "Annual Interest Rate", p0.get("annual_rate_pct", "0"), "%")
         add_fact("F08", "Repayment Tenure", p0.get("tenure_months", 0), "months")
         add_fact("F09", "Moratorium Period", p0.get("moratorium_months", 0), "months")
-        add_fact("F10", "Monthly EMI", p0.get("monthly_emi", "0"), "INR/month")
+        freq = int(p0.get("emi_frequency_months", 1) or 1)
+        add_fact("F10", "EMI", p0.get("emi", p0.get("monthly_emi", "0")), "INR/quarter" if freq == 3 else "INR/month")
         add_fact("F11", "Total Repayment", p0.get("total_repayment", "0"), "INR")
 
     # 2. Viability Metrics
@@ -73,30 +76,30 @@ def build_evaluation_facts(
     if "dscr_target" in viability:
         add_fact("V01", "DSCR Target", viability.get("dscr_target", "1.25"), "ratio")
 
-    nayak = summary.get("nayak_working_capital", {})
+    nayak = (summary.get("nayak_working_capital") or {})
     add_fact("F14", "Nayak Total Working Capital", nayak.get("total", "0"), "INR")
     add_fact("F15", "Nayak Bank Working Capital", nayak.get("bank_finance_20", "0"), "INR")
     add_fact("F16", "Nayak Promoter WC Margin", nayak.get("promoter_margin_5", "0"), "INR")
 
-    udhar = summary.get("udhar_stress", {})
+    udhar = (summary.get("udhar_stress") or {})
     add_fact("F17", "Udhar Stress Extra WC", udhar.get("extra_wc_needed", "0"), "INR")
     add_fact("F18", "Udhar Cash Buffer", udhar.get("cash_buffer_months", "0"), "months")
 
     # 3. Market Metrics
-    add_fact("F19", "Market Saturation Level", summary.get("market_saturation", "medium"))
+    add_fact("F19", "Market Saturation Level", summary.get("market_saturation"))
     add_fact("F20", "Catchment Population", summary.get("effective_catchment_population", "0"), "persons")
     add_fact("F21", "Monthly Category Demand", summary.get("monthly_category_demand", "0"), "INR/month")
-    add_fact("F22", "Reported Competitors", summary.get("competitors_reported", "0"), "shops")
+    add_fact("F22", "Reported Competitors", summary.get("competitors_reported"), "shops")
 
-    pop_now = market.get("population_now", {})
+    pop_now = (market.get("population_now") or {})
     if "value" in pop_now:
         add_fact("F23", "Projected Village Population", pop_now["value"], "persons")
 
-    d_per_shop = market.get("demand_per_shop_monthly", {})
+    d_per_shop = (market.get("demand_per_shop_monthly") or {})
     if "value" in d_per_shop:
         add_fact("F24", "Monthly Demand Per Shop", d_per_shop["value"], "INR/month/shop")
 
-    be_share = market.get("be_market_share", {})
+    be_share = (market.get("be_market_share") or {})
     if "value" in be_share:
         add_fact("F25", "Break-Even Market Share", be_share["value"], "ratio")
 
@@ -105,7 +108,7 @@ def build_evaluation_facts(
         add_fact(f"INP_{k}", f"Input: {k}", v)
 
     # 5. Beneficiary age, category
-    b_snap = input_snapshot.get("beneficiary", {})
+    b_snap = (input_snapshot.get("beneficiary") or {})
     add_fact("B01", "Beneficiary Age", b_snap.get("age", 0), "years")
     add_fact("B02", "Beneficiary Category", b_snap.get("category", "General"))
     add_fact("B03", "Existing Monthly EMI", b_snap.get("existing_emi", "0"), "INR/month")

@@ -64,7 +64,7 @@ def _derive_fernet_key(secret: str) -> bytes:
     return base64.urlsafe_b64encode(digest)
 
 
-_FERNET_INSTANCE = Fernet(_derive_fernet_key(settings.secret_key))
+_FERNET_INSTANCE = Fernet(_derive_fernet_key(settings.encryption_key or settings.secret_key))
 
 
 def encrypt_text(plaintext: str | None) -> str | None:

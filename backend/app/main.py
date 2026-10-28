@@ -4,12 +4,18 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .config import settings
+from .config import INSECURE_DEFAULT_SECRET, settings
 from .routers import admin, advisory, auth, beneficiaries, cases, dashboard, dpr, geo, meta, speech
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.environment == "production":
+        if settings.secret_key == INSECURE_DEFAULT_SECRET:
+            print("CRITICAL: SECRET_KEY is the insecure default in production. Set SECRET_KEY now.")
+        if settings.debug:
+            print("WARNING: DEBUG=true in production.")
+
     # Startup actions: enable extensions, ensure tables & baseline seed exist
     from sqlalchemy import text
 
@@ -31,6 +37,12 @@ async def lifespan(app: FastAPI):
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            if engine.dialect.name == "postgresql":
+                # create_all does not add columns to existing tables; keep this list in sync
+                # with Alembic migrations until deploys run `alembic upgrade head`.
+                await conn.execute(
+                    text("ALTER TABLE beneficiaries ADD COLUMN IF NOT EXISTS annual_family_income INTEGER")
+                )
         async with async_session_maker() as session:
             await seed_all(session)
         if os.getenv("SEED_DEMO_DATA", "").lower() == "true":
@@ -52,12 +64,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # Auth uses bearer tokens (no cookies), so credentials are never needed cross-origin.
+    allow_origins=_cors_origins or ["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 

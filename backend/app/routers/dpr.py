@@ -41,6 +41,12 @@ async def generate_dpr(
     if ev.case.beneficiary.org_id != user.org_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluation record not found")
 
+    if not (ev.output or {}).get("summary", {}).get("top_packages"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No eligible financing package in this evaluation; a bank DPR cannot be generated.",
+        )
+
     # Render primary language DPR
     dpr_result = render_dpr_pdf(
         case_id=ev.case_id,
@@ -141,13 +147,41 @@ async def list_dpr_documents(
 @router.get("/dpr/{document_id}/download")
 async def download_dpr(
     document_id: int,
+    user: CurrentUser,
     db: DbSession,
 ) -> FileResponse:
-    """Download generated bank-ready DPR PDF."""
-    res = await db.execute(select(DprDocument).where(DprDocument.id == document_id))
+    """Download a generated DPR PDF (only within the agent's own organisation)."""
+    res = await db.execute(
+        select(DprDocument)
+        .options(selectinload(DprDocument.evaluation).selectinload(Evaluation.case).selectinload(Case.beneficiary))
+        .where(DprDocument.id == document_id)
+    )
     doc = res.scalar_one_or_none()
-    if not doc or not Path(doc.object_key).exists():
+    if not doc or doc.evaluation.case.beneficiary.org_id != user.org_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="DPR document not found")
+
+    if not Path(doc.object_key).exists():
+        # Container disks are ephemeral (e.g. Render free plan): re-render deterministically.
+        ev = doc.evaluation
+        regenerated = render_dpr_pdf(
+            case_id=ev.case_id,
+            eval_output=ev.output,
+            input_snapshot=ev.input_snapshot,
+            output_dir=DPR_STORAGE_DIR,
+            language=doc.language,
+        )
+        doc.object_key = regenerated.file_path
+        doc.sha256 = regenerated.file_sha256
+        await db.commit()
+
+    await log_processing(
+        db=db,
+        actor_id=user.id,
+        purpose="Download DPR PDF",
+        entity="dpr_documents",
+        entity_id=str(doc.id),
+    )
+    await db.commit()
 
     return FileResponse(
         path=doc.object_key,
