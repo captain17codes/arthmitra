@@ -32,9 +32,10 @@ export const ConsentScreen: React.FC<Props> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [recorded, setRecorded] = useState(false);
   const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null);
-  const [audioSha256, setAudioSha256] = useState<string>("sha256_e7d2a8b9410f837c");
+  const [audioSha256, setAudioSha256] = useState<string>("");
   const [isPlayingRecorded, setIsPlayingRecorded] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [micError, setMicError] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -46,13 +47,17 @@ export const ConsentScreen: React.FC<Props> = ({
       if (window.crypto && window.crypto.subtle) {
         const hashBuffer = await window.crypto.subtle.digest("SHA-256", buffer);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return "sha256_" + hashArray.map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+        return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
       }
-    } catch {}
-    return "sha256_voice_" + Math.random().toString(36).substring(2, 10);
+    } catch {
+      /* hashing unavailable: record consent without an audio hash rather than a fake one */
+    }
+    return "";
   };
 
   const handleVoiceTap = async () => {
+    setMicError(false);
+    setMethod("voice");
     setIsRecording(true);
     audioChunksRef.current = [];
 
@@ -94,16 +99,14 @@ export const ConsentScreen: React.FC<Props> = ({
         }, 1800);
         return;
       } catch (err) {
-        console.warn("Microphone access unavailable or denied, falling back to simulated consent:", err);
+        console.warn("Microphone access unavailable or denied:", err);
       }
     }
 
-    // Testing/fallback mode
-    setTimeout(async () => {
-      setIsRecording(false);
-      setRecorded(true);
-      setAudioSha256("sha256_mock_" + Date.now().toString(16));
-    }, 1200);
+    // No microphone: never pretend a recording happened. The agent must use paper/OTP consent.
+    setIsRecording(false);
+    setRecorded(false);
+    setMicError(true);
   };
 
   const handlePlayRecordedAudio = () => {
@@ -133,7 +136,9 @@ export const ConsentScreen: React.FC<Props> = ({
         utterance.onerror = () => setIsPlayingAudio(false);
         window.speechSynthesis.speak(utterance);
         return;
-      } catch {}
+      } catch {
+        /* fall through to the audio element */
+      }
     }
 
     setTimeout(() => {
@@ -141,11 +146,13 @@ export const ConsentScreen: React.FC<Props> = ({
     }, 2500);
   };
 
+  const voiceDone = recorded && method === "voice";
+
   const handleProceed = () => {
     onConsentGranted({
       notice_version: "1.0",
       method,
-      audio_sha256: method === "voice" ? audioSha256 : undefined,
+      audio_sha256: method === "voice" && audioSha256 ? audioSha256 : undefined,
     });
   };
 
@@ -207,7 +214,7 @@ export const ConsentScreen: React.FC<Props> = ({
           onClick={handleVoiceTap}
           disabled={isRecording}
           className={`w-full py-4 px-4 rounded-2xl border-2 transition flex flex-col items-center justify-center gap-1.5 shadow-sm min-h-[72px] ${
-            recorded
+            voiceDone
               ? "bg-emerald-100/80 border-emerald-500 text-emerald-950"
               : isRecording
               ? "bg-red-50 border-red-400 text-red-700 animate-pulse"
@@ -215,7 +222,7 @@ export const ConsentScreen: React.FC<Props> = ({
           }`}
         >
           <div className="flex items-center gap-2 font-bold text-sm">
-            {recorded ? (
+            {voiceDone ? (
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
             ) : (
               <Mic className="w-5 h-5 text-emerald-600" />
@@ -223,20 +230,22 @@ export const ConsentScreen: React.FC<Props> = ({
             <span>
               {isRecording
                 ? "आवाज नोंदवत आहे... (Recording)"
-                : recorded
+                : voiceDone
                 ? "संमती ऑडिओ रेकॉर्ड झाली ✓"
                 : t.voiceConsentBtn}
             </span>
           </div>
           <span className="text-[11px] text-slate-500 font-medium">
-            {recorded
-              ? `डिजिटल ऑडिओ हॅश: ${audioSha256.slice(0, 18)}... सुरक्षित जतन`
+            {voiceDone
+              ? audioSha256
+                ? `डिजिटल ऑडिओ हॅश: ${audioSha256.slice(0, 18)}... सुरक्षित जतन`
+                : "ऑडिओ नोंदवला (हॅश उपलब्ध नाही)"
               : "माईक टॅप करून लाभार्थ्यांचा संमती होकार नोंदवा"}
           </span>
         </button>
 
         {/* Audio Playback & Re-record for Recorded Consent */}
-        {recorded && (
+        {voiceDone && (
           <div className="p-2.5 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
               {audioBlobUrl && (
@@ -298,6 +307,14 @@ export const ConsentScreen: React.FC<Props> = ({
           </button>
         </div>
       </div>
+
+      {micError && (
+        <div role="alert" className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
+          {lang === "mr"
+            ? "मायक्रोफोन उपलब्ध नाही. कृपया सही/अंगठा किंवा SMS OTP संमती वापरा."
+            : "Microphone not available. Please use signature/thumbprint or SMS OTP consent."}
+        </div>
+      )}
 
       {/* Confirmation Badge */}
       {recorded && (

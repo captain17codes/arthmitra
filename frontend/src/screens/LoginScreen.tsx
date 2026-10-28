@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Lock, Phone, ShieldCheck, Sparkles } from "lucide-react";
 import { Language, User } from "../types";
 import { translations } from "../i18n";
-import { api } from "../services/api";
+import { api, ApiError } from "../services/api";
 
 interface Props {
   lang: Language;
@@ -30,10 +30,18 @@ export const LoginScreen: React.FC<Props> = ({ lang, onLoginSuccess }) => {
 
     setLoading(true);
     try {
-      const res = await api.login(phone, pin);
-      onLoginSuccess(res.user);
-    } catch {
-      setErrorMsg(lang === "mr" ? "लॉगिन अयशस्वी. कृपया पिन तपासा." : "Login failed. Please verify credentials.");
+      const user = await api.login(phone, pin);
+      onLoginSuccess(user);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 0) {
+        setErrorMsg(
+          lang === "mr"
+            ? "सर्व्हरशी संपर्क झाला नाही. इंटरनेट तपासा (पहिल्यांदा सर्व्हर सुरू होण्यास १ मिनिट लागू शकतो)."
+            : "Could not reach the server. Check internet (first start can take ~1 minute)."
+        );
+      } else {
+        setErrorMsg(lang === "mr" ? "लॉगिन अयशस्वी. कृपया पिन तपासा." : "Login failed. Please verify credentials.");
+      }
     } finally {
       setLoading(false);
     }

@@ -1,11 +1,32 @@
 import React from "react";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { App } from "../src/App";
 
 describe("Agent PWA Frontend Journey", () => {
   beforeEach(() => {
     localStorage.clear();
+    // Signed-in agent (the app no longer invents a user when logged out)
+    localStorage.setItem("arthmitra_auth_token", "test-token");
+    localStorage.setItem(
+      "arthmitra_auth_user",
+      JSON.stringify({ id: "1", full_name: "Test Agent", role: "agent", organization_id: "1", organization_name: "Org #1" })
+    );
+    // Network stub for this test file only: empty case list
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } }))
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("shows the login screen when signed out (no invented user)", () => {
+    localStorage.clear();
+    render(<App />);
+    expect(screen.queryByText("नवीन प्रकरण सुरू करा")).not.toBeInTheDocument();
   });
 
   it("renders mobile baseline, header and case list", async () => {
@@ -31,9 +52,11 @@ describe("Agent PWA Frontend Journey", () => {
       screen.getByText(/वैयक्तिक डेटा संमती सूचना/i)
     ).toBeInTheDocument();
 
-    // Tap voice consent button
-    const consentBtn = screen.getByText(/होय, मी सहमत आहे/i);
-    fireEvent.click(consentBtn);
+    // No microphone in the test DOM: voice consent must NOT be faked, so use the signed-form consent.
+    fireEvent.click(screen.getByText(/होय, मी सहमत आहे/i));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(screen.queryByText(/कायदेशीर संमती यशस्वीरीत्या नोंदवली गेली आहे/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText(/स्वाक्षरी \/ अंगठा संमती फॉर्म/i));
 
     // Wait for recorded badge
     await waitFor(

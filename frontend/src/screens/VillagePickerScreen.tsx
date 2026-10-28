@@ -126,7 +126,7 @@ export const VillagePickerScreen: React.FC<Props> = ({
                   <div className="flex items-center gap-3 text-[10px] text-slate-500 pt-0.5">
                     <span className="flex items-center gap-1 font-semibold text-emerald-800">
                       <Users className="w-3 h-3 text-emerald-600" />
-                      {t.populationLabel}: {formatNumberIN(v.population)}
+                      {t.populationLabel}: {v.population !== null ? formatNumberIN(v.population) : "—"}
                     </span>
                     <span>LGD: {v.lgd_code}</span>
                   </div>

@@ -4,6 +4,7 @@ import {
   BusinessType,
   CalibrationData,
   CaseRecord,
+  ConsentRecord,
   Language,
   User,
   Village,
@@ -34,6 +35,9 @@ export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(storage.getUser());
   const [currentTab, setCurrentTab] = useState<NavTab>("cases");
   const [cases, setCases] = useState<CaseRecord[]>(storage.getCases());
+  const [casesError, setCasesError] = useState<string>("");
+  const [evalBusy, setEvalBusy] = useState<boolean>(false);
+  const [evalError, setEvalError] = useState<string>("");
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 
   // Active view states
@@ -47,12 +51,27 @@ export const App: React.FC = () => {
   const [wizardStep, setWizardStep] = useState<
     "consent" | "profile" | "village" | "business" | "calibration"
   >("consent");
-  const [, setDraftConsent] = useState<any>(null);
+  const [draftConsent, setDraftConsent] = useState<ConsentRecord | null>(null);
   const [draftProfile, setDraftProfile] = useState<BeneficiaryProfile | null>(null);
   const [draftVillage, setDraftVillage] = useState<Village | null>(null);
   const [draftBusiness, setDraftBusiness] = useState<BusinessType | null>(null);
-  const [draftCost, setDraftCost] = useState<number>(150000);
-  const [draftMargin, setDraftMargin] = useState<number>(15000);
+  const [draftCost, setDraftCost] = useState<number | null>(null);
+  const [draftMargin, setDraftMargin] = useState<number | undefined>(undefined);
+
+  const refreshCases = async () => {
+    try {
+      setCases(await api.getCases());
+      setCasesError("");
+    } catch (e) {
+      setCasesError((e as Error).message);
+      if (!storage.getToken()) setUser(null);
+    }
+  };
+
+  useEffect(() => {
+    if (user) refreshCases();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -78,6 +97,9 @@ export const App: React.FC = () => {
   const handleLogout = () => {
     storage.clearToken();
     storage.clearUser();
+    storage.clearCases();
+    setCases([]);
+    setSelectedCase(null);
     setUser(null);
   };
 
@@ -92,8 +114,12 @@ export const App: React.FC = () => {
     setCurrentTab("new_case");
   };
 
-  const handleConsentGranted = (c: any) => {
-    setDraftConsent(c);
+  const handleConsentGranted = (c: { method?: string; audio_sha256?: string }) => {
+    setDraftConsent({
+      language: lang,
+      method: c.method === "voice" ? "voice" : "tap",
+      audio_sha256: c.audio_sha256,
+    });
     setWizardStep("profile");
   };
 
@@ -107,7 +133,7 @@ export const App: React.FC = () => {
     setWizardStep("business");
   };
 
-  const handleConfirmBusiness = (b: BusinessType, cost: number, margin: number) => {
+  const handleConfirmBusiness = (b: BusinessType, cost: number | null, margin: number) => {
     setDraftBusiness(b);
     setDraftCost(cost);
     setDraftMargin(margin);
@@ -115,37 +141,45 @@ export const App: React.FC = () => {
   };
 
   const handleCompleteCalibration = async (calib: CalibrationData) => {
-    if (!draftProfile || !draftVillage || !draftBusiness) return;
+    if (!draftProfile || !draftVillage || !draftBusiness || !draftConsent || draftMargin === undefined) return;
+    setEvalBusy(true);
+    setEvalError("");
+    try {
+      const created = await api.createAndEvaluateCase({
+        profile: draftProfile,
+        consent: draftConsent,
+        village: draftVillage,
+        business: draftBusiness,
+        margin: draftMargin,
+        targetProjectCost: draftCost,
+        calibration: calib,
+        language: lang,
+      });
+      await refreshCases();
+      setSelectedCase(created);
+      setViewingDpr(false);
+      setCurrentTab("cases");
+    } catch (e) {
+      // Stay on the wizard with all entered data so the agent can retry.
+      setEvalError((e as Error).message);
+    } finally {
+      setEvalBusy(false);
+    }
+  };
 
-    const newRecord: CaseRecord = {
-      id: `case_${Date.now()}`,
-      beneficiary_id: `ben_${Date.now()}`,
-      beneficiary: draftProfile,
-      village_id: draftVillage.id,
-      village: draftVillage,
-      business_code: draftBusiness.code,
-      business: draftBusiness,
-      target_project_cost: draftCost,
-      margin_available: draftMargin,
-      calibration: calib,
-      status: "ready",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    // Evaluate
-    const evalRes = await api.evaluateCase(newRecord, calib.udhar_pct || 15);
-    newRecord.evaluation = evalRes;
-    const saved = await api.saveCase(newRecord);
-
-    setCases(storage.getCases());
-    setSelectedCase(saved);
-    setCurrentTab("cases");
+  const openCase = async (c: CaseRecord) => {
+    setViewingDpr(false);
+    setSelectedCase(c);
+    try {
+      setSelectedCase(await api.getCase(c.id));
+    } catch (e) {
+      setCasesError((e as Error).message);
+    }
   };
 
   const handleCaseUpdated = (updated: CaseRecord) => {
     setSelectedCase(updated);
-    setCases(storage.getCases());
+    refreshCases();
   };
 
   return (
@@ -238,6 +272,8 @@ export const App: React.FC = () => {
                 business={draftBusiness}
                 onEvaluate={handleCompleteCalibration}
                 onBack={() => setWizardStep("business")}
+                busy={evalBusy}
+                error={evalError}
               />
             )}
           </div>
@@ -245,7 +281,6 @@ export const App: React.FC = () => {
           viewingDpr ? (
             <DprScreen
               caseRecord={selectedCase}
-              evaluation={selectedCase.evaluation!}
               onUpdateCase={handleCaseUpdated}
               onBack={() => setViewingDpr(false)}
               lang={lang}
@@ -253,20 +288,17 @@ export const App: React.FC = () => {
           ) : (
             <ResultsScreen
               caseRecord={selectedCase}
-              evaluation={selectedCase.evaluation!}
-              onUpdateCase={handleCaseUpdated}
+              onCaseUpdated={handleCaseUpdated}
               onGoToDpr={() => setViewingDpr(true)}
-              onBack={() => setSelectedCase(null)}
               lang={lang}
             />
           )
         ) : (
           <CaseListScreen
             cases={cases}
-            onSelectCase={(c) => {
-              setSelectedCase(c);
-              setViewingDpr(false);
-            }}
+            error={casesError}
+            onRefresh={refreshCases}
+            onSelectCase={openCase}
             onNewCase={startNewCase}
             lang={lang}
           />

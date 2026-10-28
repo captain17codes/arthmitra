@@ -34,7 +34,7 @@ export const SupervisorDashboardScreen: React.FC<Props> = ({
     (c) => c.status === "sanctioned" || c.status === "ready"
   ).length;
   const totalCapital = cases.reduce(
-    (acc, c) => acc + (c.target_project_cost || 150000),
+    (acc, c) => acc + (c.target_project_cost || 0), // only cases with a planned project cost
     0
   );
 

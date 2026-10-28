@@ -40,6 +40,8 @@ export default defineConfig({
       "/speech": "http://127.0.0.1:8000",
       "/admin": "http://127.0.0.1:8000",
       "/dashboard": "http://127.0.0.1:8000",
+      "/evaluations": "http://127.0.0.1:8000",
+      "/dpr": "http://127.0.0.1:8000",
     },
   },
 });

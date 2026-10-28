@@ -1,126 +1,84 @@
 import { CaseRecord, User } from "../types";
-import { INITIAL_CASES_SEED, MOCK_USER } from "./mockData";
 
+/**
+ * Browser storage for per-device conveniences only: auth token, the signed-in user,
+ * language, and a read-only cache of the case list for viewing while offline.
+ * The server is always the source of truth; nothing here is ever invented.
+ */
 const STORAGE_KEYS = {
   AUTH_TOKEN: "arthmitra_auth_token",
   AUTH_USER: "arthmitra_auth_user",
-  CASES: "arthmitra_cases",
+  CASES: "arthmitra_cases_cache_v2",
   LANGUAGE: "arthmitra_language",
-  OFFLINE_QUEUE: "arthmitra_offline_queue",
 };
+
+function read(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function write(key: string, value: string | null): void {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch {
+    /* storage unavailable (private mode etc.) */
+  }
+}
 
 export const storage = {
   getToken(): string | null {
+    return read(STORAGE_KEYS.AUTH_TOKEN);
+  },
+  setToken(token: string): void {
+    write(STORAGE_KEYS.AUTH_TOKEN, token);
+  },
+  clearToken(): void {
+    write(STORAGE_KEYS.AUTH_TOKEN, null);
+  },
+
+  getUser(): User | null {
+    const data = read(STORAGE_KEYS.AUTH_USER);
+    if (!data || !read(STORAGE_KEYS.AUTH_TOKEN)) return null;
     try {
-      return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      return JSON.parse(data) as User;
     } catch {
       return null;
     }
   },
-
-  setToken(token: string): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-    } catch {}
-  },
-
-  clearToken(): void {
-    try {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    } catch {}
-  },
-
-  getUser(): User | null {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
-      if (data) return JSON.parse(data);
-      // Auto-fallback to default Sakhi user if token exists or local mode
-      return MOCK_USER;
-    } catch {
-      return MOCK_USER;
-    }
-  },
-
   setUser(user: User): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
-    } catch {}
+    write(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
   },
-
   clearUser(): void {
-    try {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
-    } catch {}
+    write(STORAGE_KEYS.AUTH_USER, null);
   },
 
   getCases(): CaseRecord[] {
+    const data = read(STORAGE_KEYS.CASES);
+    if (!data) return [];
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.CASES);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    // Seed initial cases if empty
-    this.saveCases(INITIAL_CASES_SEED);
-    return INITIAL_CASES_SEED;
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? (parsed as CaseRecord[]) : [];
+    } catch {
+      return [];
+    }
   },
-
   saveCases(cases: CaseRecord[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.CASES, JSON.stringify(cases));
-    } catch {}
+    // Cache list fields only (no evaluation payloads) to keep storage small.
+    const slim = cases.map((c) => ({ ...c, output: undefined }));
+    write(STORAGE_KEYS.CASES, JSON.stringify(slim));
   },
-
-  getCaseById(id: string): CaseRecord | undefined {
-    const list = this.getCases();
-    return list.find((c) => c.id === id);
-  },
-
-  saveCase(record: CaseRecord): CaseRecord {
-    const list = this.getCases();
-    const idx = list.findIndex((c) => c.id === record.id);
-    if (idx >= 0) {
-      list[idx] = { ...record, updated_at: new Date().toISOString() };
-    } else {
-      list.unshift({
-        ...record,
-        created_at: record.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-    }
-    this.saveCases(list);
-    return record;
-  },
-
-  updateCaseStatus(
-    id: string,
-    status: CaseRecord["status"],
-    reason?: string
-  ): CaseRecord | undefined {
-    const list = this.getCases();
-    const target = list.find((c) => c.id === id);
-    if (target) {
-      target.status = status;
-      if (reason) target.status_reason = reason;
-      target.updated_at = new Date().toISOString();
-      this.saveCases(list);
-      return target;
-    }
-    return undefined;
+  clearCases(): void {
+    write(STORAGE_KEYS.CASES, null);
   },
 
   getLanguage(): string {
-    try {
-      return localStorage.getItem(STORAGE_KEYS.LANGUAGE) || "mr";
-    } catch {
-      return "mr";
-    }
+    return read(STORAGE_KEYS.LANGUAGE) || "mr";
   },
-
   setLanguage(lang: string): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.LANGUAGE, lang);
-    } catch {}
+    write(STORAGE_KEYS.LANGUAGE, lang);
   },
 };

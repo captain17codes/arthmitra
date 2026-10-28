@@ -1,38 +1,47 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Briefcase,
   CheckCircle2,
   Coins,
   Cpu,
+  Egg,
   Flame,
-  Hammer,
   Milk,
   Scissors,
-  ShoppingBag,
+  Smartphone,
   Sparkles,
   Store,
-  Truck,
+  UtensilsCrossed,
   Wrench,
 } from "lucide-react";
 import { BusinessType, Language } from "../types";
 import { formatINR, translations } from "../i18n";
-import { MOCK_BUSINESS_TYPES } from "../services/mockData";
+import { api } from "../services/api";
 
 interface Props {
   selectedBusinessCode?: string;
-  initialProjectCost?: number;
+  initialProjectCost?: number | null;
   initialMargin?: number;
-  onConfirmBusiness: (
-    business: BusinessType,
-    cost: number,
-    margin: number
-  ) => void;
+  onConfirmBusiness: (business: BusinessType, cost: number | null, margin: number) => void;
   onBack: () => void;
   lang: Language;
 }
 
+const ICONS: Record<string, React.ReactNode> = {
+  kirana: <Store className="w-5 h-5 text-emerald-600" />,
+  dairy: <Milk className="w-5 h-5 text-blue-600" />,
+  goatery: <Flame className="w-5 h-5 text-amber-600" />,
+  broiler: <Egg className="w-5 h-5 text-red-600" />,
+  tailoring: <Scissors className="w-5 h-5 text-purple-600" />,
+  beauty_parlour: <Sparkles className="w-5 h-5 text-pink-600" />,
+  mobile_repair: <Smartphone className="w-5 h-5 text-sky-600" />,
+  two_wheeler_repair: <Wrench className="w-5 h-5 text-orange-600" />,
+  flour_mill: <Cpu className="w-5 h-5 text-teal-600" />,
+  papad_pickle: <UtensilsCrossed className="w-5 h-5 text-rose-600" />,
+};
+
 export const BusinessPickerScreen: React.FC<Props> = ({
-  selectedBusinessCode = "kirana",
+  selectedBusinessCode,
   initialProjectCost,
   initialMargin,
   onConfirmBusiness,
@@ -40,81 +49,63 @@ export const BusinessPickerScreen: React.FC<Props> = ({
   lang,
 }) => {
   const t = translations[lang];
-  const businesses = MOCK_BUSINESS_TYPES;
+  const mr = lang === "mr";
+  const [businesses, setBusinesses] = useState<BusinessType[]>([]);
+  const [loadError, setLoadError] = useState<string>("");
+  const [selectedCode, setSelectedCode] = useState<string | undefined>(selectedBusinessCode);
+  const [useTarget, setUseTarget] = useState<boolean>(Boolean(initialProjectCost));
+  const [targetCost, setTargetCost] = useState<string>(initialProjectCost ? String(initialProjectCost) : "");
+  const [margin, setMargin] = useState<string>(initialMargin !== undefined ? String(initialMargin) : "");
 
-  const [selectedCode, setSelectedCode] = useState(selectedBusinessCode);
-  const currentBusiness =
-    businesses.find((b) => b.code === selectedCode) || businesses[0];
+  useEffect(() => {
+    api
+      .getBusinesses()
+      .then((list) => {
+        setBusinesses(list);
+        if (!selectedCode && list.length) setSelectedCode(list[0].code);
+      })
+      .catch((e: Error) => setLoadError(e.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const [targetCost, setTargetCost] = useState<number>(
-    initialProjectCost || currentBusiness.default_project_cost
-  );
-  const [marginAvailable, setMarginAvailable] = useState<number>(
-    initialMargin || Math.round((initialProjectCost || currentBusiness.default_project_cost) * 0.1)
-  );
-
-  const handleSelectBusiness = (b: BusinessType) => {
-    setSelectedCode(b.code);
-    setTargetCost(b.default_project_cost);
-    setMarginAvailable(Math.round(b.default_project_cost * 0.1));
-  };
-
-  const getBusinessIcon = (code: string) => {
-    switch (code) {
-      case "kirana":
-        return <Store className="w-5 h-5 text-emerald-600" />;
-      case "dairy":
-        return <Milk className="w-5 h-5 text-blue-600" />;
-      case "goat":
-        return <Flame className="w-5 h-5 text-amber-600" />;
-      case "tailoring":
-        return <Scissors className="w-5 h-5 text-purple-600" />;
-      case "beauty_parlour":
-        return <Sparkles className="w-5 h-5 text-pink-600" />;
-      case "two_wheeler_repair":
-        return <Wrench className="w-5 h-5 text-orange-600" />;
-      case "flour_mill":
-        return <Cpu className="w-5 h-5 text-teal-600" />;
-      case "vegetable_vending":
-        return <Truck className="w-5 h-5 text-green-600" />;
-      case "poultry_broiler":
-        return <ShoppingBag className="w-5 h-5 text-red-600" />;
-      case "welding_fabrication":
-        return <Hammer className="w-5 h-5 text-slate-700" />;
-      default:
-        return <Briefcase className="w-5 h-5 text-indigo-600" />;
-    }
-  };
-
-  const marginPct = Math.round((marginAvailable / (targetCost || 1)) * 100);
+  const current = businesses.find((b) => b.code === selectedCode);
+  const range = current?.viable_range;
+  const marginNum = Number(margin);
+  const targetNum = Number(targetCost);
+  const canSubmit =
+    Boolean(current) && margin !== "" && marginNum >= 0 && (!useTarget || (targetCost !== "" && targetNum > 0));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onConfirmBusiness(currentBusiness, targetCost, marginAvailable);
+    if (!current || !canSubmit) return;
+    onConfirmBusiness(current, useTarget ? targetNum : null, marginNum);
   };
 
   return (
     <div className="p-4 space-y-4">
-      {/* Step Header */}
       <div>
         <span className="text-[10px] uppercase font-bold text-indigo-700 tracking-wider bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-          पायरी ४ / ५ · व्यवसाय व भांडवल
+          {mr ? "पायरी ४ / ५ · व्यवसाय व भांडवल" : "Step 4 / 5 · Business & own money"}
         </span>
-        <h2 className="text-base font-black text-slate-900 mt-1">
-          {t.businessPickerTitle}
-        </h2>
+        <h2 className="text-base font-black text-slate-900 mt-1">{t.businessPickerTitle}</h2>
         <p className="text-xs text-slate-500 mt-0.5">{t.selectBusinessHint}</p>
       </div>
 
-      {/* Business Cards Grid (10 Businesses) */}
+      {loadError && (
+        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800">{loadError}</div>
+      )}
+      {!loadError && businesses.length === 0 && <div className="text-xs text-slate-500">{t.loading}</div>}
+
       <div className="grid grid-cols-2 gap-2.5 max-h-[42vh] overflow-y-auto pr-1">
         {businesses.map((b) => {
           const isSelected = selectedCode === b.code;
           return (
-            <div
+            <button
+              type="button"
               key={b.code}
-              onClick={() => handleSelectBusiness(b)}
-              className={`p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+              onClick={() => setSelectedCode(b.code)}
+              aria-pressed={isSelected}
+              className={`p-3 rounded-2xl border transition text-left flex flex-col justify-between gap-1.5 min-h-[48px] ${
                 isSelected
                   ? "bg-indigo-50/90 border-indigo-500 shadow-xs ring-1 ring-indigo-500"
                   : "bg-white border-slate-200 hover:border-slate-300"
@@ -122,87 +113,92 @@ export const BusinessPickerScreen: React.FC<Props> = ({
             >
               <div className="flex items-start justify-between gap-1">
                 <div className="p-1.5 rounded-xl bg-white border border-slate-100 shadow-2xs">
-                  {getBusinessIcon(b.code)}
+                  {ICONS[b.code] || <Briefcase className="w-5 h-5 text-indigo-600" />}
                 </div>
-                {isSelected && (
-                  <CheckCircle2 className="w-4 h-4 text-indigo-600" />
-                )}
+                {isSelected && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
               </div>
-
               <div>
-                <h3 className="text-xs font-bold text-slate-900 leading-tight">
-                  {lang === "mr" ? b.name_mr : b.name_en}
-                </h3>
-                <span className="text-[10px] text-slate-500 font-medium block mt-0.5">
-                  {b.sector}
-                </span>
+                <h3 className="text-xs font-bold text-slate-900 leading-tight">{mr ? b.name_mr : b.name_en}</h3>
+                <span className="text-[10px] text-slate-500 font-medium block mt-0.5">{b.sector}</span>
               </div>
-
-              <div className="text-[11px] font-extrabold text-emerald-800 pt-1 border-t border-slate-100">
-                {formatINR(b.default_project_cost)}
-              </div>
-            </div>
+              {b.viable_range && (
+                <div className="text-[10px] font-bold text-emerald-800 pt-1 border-t border-slate-100">
+                  {formatINR(b.viable_range.min)} – {formatINR(b.viable_range.max)}
+                </div>
+              )}
+            </button>
           );
         })}
       </div>
 
-      {/* Financial Sizing Form */}
       <form onSubmit={handleSubmit} className="space-y-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1">
-            {t.targetCostLabel}
+          <label htmlFor="margin" className="block text-xs font-bold text-slate-700 mb-1">
+            {t.marginAvailableLabel}
           </label>
           <input
+            id="margin"
             type="number"
-            step={5000}
-            min={20000}
-            max={5000000}
-            value={targetCost}
-            onChange={(e) => {
-              const val = parseInt(e.target.value) || 0;
-              setTargetCost(val);
-              setMarginAvailable(Math.round(val * 0.1));
-            }}
+            inputMode="numeric"
+            min={0}
+            step={1000}
+            value={margin}
+            placeholder={mr ? "उदा. 10000" : "e.g. 10000"}
+            onChange={(e) => setMargin(e.target.value)}
             className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 min-h-[48px]"
             required
           />
+          <p className="text-[10px] text-slate-500 mt-1">
+            {mr
+              ? "लाभार्थ्याकडे प्रत्यक्ष असलेली रक्कम. प्रकल्प व कर्ज प्रत्येक योजनेनुसार गणले जाईल."
+              : "Money the beneficiary actually has. Project and loan are sized per scheme by the engine."}
+          </p>
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-bold text-slate-700">
-              {t.marginAvailableLabel}
-            </label>
-            <span className="text-xs font-black text-indigo-600">
-              {marginPct}% ({formatINR(marginAvailable)})
-            </span>
-          </div>
-
+        <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer min-h-[44px]">
           <input
-            type="range"
-            min={Math.round(targetCost * 0.05)}
-            max={Math.round(targetCost * 0.35)}
-            step={1000}
-            value={marginAvailable}
-            onChange={(e) => setMarginAvailable(parseInt(e.target.value) || 0)}
-            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+            type="checkbox"
+            checked={useTarget}
+            onChange={(e) => setUseTarget(e.target.checked)}
+            className="w-5 h-5 rounded text-indigo-600"
           />
+          {mr ? "ठरावीक प्रकल्प खर्च आधीच माहित आहे" : "A specific project cost is already planned"}
+        </label>
 
-          <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
-            <span>किमान ५% ({formatINR(Math.round(targetCost * 0.05))})</span>
-            <span>कमाल ३५% ({formatINR(Math.round(targetCost * 0.35))})</span>
+        {useTarget && (
+          <div>
+            <label htmlFor="target" className="block text-xs font-bold text-slate-700 mb-1">
+              {t.targetCostLabel}
+            </label>
+            <input
+              id="target"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              step={5000}
+              value={targetCost}
+              onChange={(e) => setTargetCost(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 min-h-[48px]"
+              required
+            />
+            {range && (
+              <p className="text-[10px] text-slate-500 mt-1">
+                {mr ? "या व्यवसायासाठी सामान्य गुंतवणूक" : "Typical investment for this business"}:{" "}
+                {formatINR(range.min)} – {formatINR(range.max)}
+              </p>
+            )}
           </div>
-        </div>
+        )}
 
         <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 text-[11px] text-slate-600">
           <Coins className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>
-            कर्ज रक्कम: <strong>{formatINR(targetCost - marginAvailable)}</strong>{" "}
-            (बँक वित्तपुरवठा: {100 - marginPct}%)
+            {mr
+              ? "कर्ज, अनुदान व हप्ता पुढील पायरीनंतर सर्व पात्र योजनांसाठी गणले जातील."
+              : "Loan, subsidy and EMI are calculated for every eligible scheme after the next step."}
           </span>
         </div>
 
-        {/* Buttons */}
         <div className="pt-2 flex items-center gap-3">
           <button
             type="button"
@@ -213,9 +209,10 @@ export const BusinessPickerScreen: React.FC<Props> = ({
           </button>
           <button
             type="submit"
-            className="flex-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition min-h-[48px]"
+            disabled={!canSubmit}
+            className="flex-[2] py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs shadow-sm transition min-h-[48px]"
           >
-            स्थानिक तपासणी करा →
+            {mr ? "स्थानिक तपासणी करा →" : "Local check →"}
           </button>
         </div>
       </form>

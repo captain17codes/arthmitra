@@ -14,6 +14,8 @@ import { StatusBadge } from "../components/StatusBadge";
 
 interface Props {
   cases: CaseRecord[];
+  error?: string;
+  onRefresh?: () => void;
   onSelectCase: (c: CaseRecord) => void;
   onNewCase: () => void;
   lang: Language;
@@ -21,6 +23,8 @@ interface Props {
 
 export const CaseListScreen: React.FC<Props> = ({
   cases,
+  error,
+  onRefresh,
   onSelectCase,
   onNewCase,
   lang,
@@ -43,16 +47,26 @@ export const CaseListScreen: React.FC<Props> = ({
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !q ||
-      c.beneficiary.first_name.toLowerCase().includes(q) ||
-      c.village.name_en.toLowerCase().includes(q) ||
-      c.village.name_mr.includes(q) ||
-      c.business.name_en.toLowerCase().includes(q) ||
-      c.business.name_mr.includes(q);
+      (c.beneficiary.first_name || "").toLowerCase().includes(q) ||
+      (c.village?.name_en || "").toLowerCase().includes(q) ||
+      (c.village?.name_mr || "").includes(q) ||
+      (c.business?.name_en || c.business_code).toLowerCase().includes(q) ||
+      (c.business?.name_mr || "").includes(q);
     return matchesFilter && matchesSearch;
   });
 
   return (
     <div className="p-4 space-y-4">
+      {error && (
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-xs text-amber-900 flex items-center justify-between gap-2">
+          <span>{error}</span>
+          {onRefresh && (
+            <button type="button" onClick={onRefresh} className="font-bold underline min-h-[40px]">
+              {lang === "mr" ? "पुन्हा प्रयत्न" : "Retry"}
+            </button>
+          )}
+        </div>
+      )}
       {/* Top Banner & CTA */}
       <div className="flex items-center justify-between gap-2">
         <div>
@@ -119,6 +133,9 @@ export const CaseListScreen: React.FC<Props> = ({
           filteredCases.map((c) => (
             <div
               key={c.id}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && onSelectCase(c)}
               onClick={() => onSelectCase(c)}
               className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-indigo-300 shadow-2xs hover:shadow-xs transition cursor-pointer space-y-2.5 active:scale-[0.99]"
             >
@@ -130,7 +147,7 @@ export const CaseListScreen: React.FC<Props> = ({
                   </h3>
                   <span className="text-[11px] font-semibold text-indigo-700 flex items-center gap-1 mt-0.5">
                     <Building2 className="w-3 h-3" />
-                    {lang === "mr" ? c.business.name_mr : c.business.name_en}
+                    {c.business ? (lang === "mr" ? c.business.name_mr : c.business.name_en) : c.business_code}
                   </span>
                 </div>
                 <StatusBadge status={c.status as CaseStatus} lang={lang} />
@@ -140,12 +157,11 @@ export const CaseListScreen: React.FC<Props> = ({
                 <div className="flex items-center gap-1 text-[11px]">
                   <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span className="truncate">
-                    {lang === "mr" ? c.village.name_mr : c.village.name_en} (
-                    {lang === "mr" ? c.village.district_mr : c.village.district_en})
+                    {c.village ? `${lang === "mr" ? c.village.name_mr : c.village.name_en} (${lang === "mr" ? c.village.district_mr : c.village.district_en})` : "—"}
                   </span>
                 </div>
                 <div className="text-right font-bold text-slate-900">
-                  {formatINR(c.target_project_cost)}
+                  {c.target_project_cost ? formatINR(c.target_project_cost) : `${lang === "mr" ? "भांडवल" : "Own"} ${formatINR(c.margin_available)}`}
                 </div>
               </div>
 

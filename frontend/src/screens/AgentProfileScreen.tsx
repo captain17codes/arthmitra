@@ -51,7 +51,7 @@ export const AgentProfileScreen: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             <Phone className="w-4 h-4 text-slate-400" />
             <span>
-              मोबाईल: <strong>+91 {user.phone}</strong>
+              ID: <strong>{user.id}</strong>
             </span>
           </div>
           <div className="flex items-center gap-2">

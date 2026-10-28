@@ -172,7 +172,7 @@ export function normalizeSpokenText(text: string): string {
   s = s.replace(/[₹$]|rs\.?|inr|rupees?|रुपये|रुपया/gi, " ");
   s = s.replace(/\/-\s*/g, " ");
   s = s.replace(/(?<=\d),(?=\d)/g, "");
-  s = s.replace(/[,/\\()\-]+/g, " ");
+  s = s.replace(/[,/\\()-]+/g, " ");
   return s.replace(/\s+/g, " ").trim().toLowerCase();
 }
 
@@ -197,7 +197,7 @@ export function parseIndianSpokenNumber(text: string): number | null {
   if (!clean) return null;
 
   // Direct digits with optional scale (e.g., '1.5 lakh', '150000', '50k')
-  const directMatch = clean.match(/^(\d+(?:\.\d+)?)\s*([a-z\u0900-\u097f]+)?$/);
+  const directMatch = clean.match(/^(\d+(?:\.\d+)?)\s*([a-z\p{Script=Devanagari}]+)?$/u);
   if (directMatch) {
     const num = parseFloat(directMatch[1]);
     const scaleStr = directMatch[2];

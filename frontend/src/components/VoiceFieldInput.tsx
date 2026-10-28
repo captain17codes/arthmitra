@@ -119,7 +119,9 @@ export const VoiceFieldInput: React.FC<VoiceFieldInputProps> = ({
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
-      } catch {}
+      } catch {
+        /* already stopped */
+      }
       recognitionRef.current = null;
     }
     setIsListening(false);

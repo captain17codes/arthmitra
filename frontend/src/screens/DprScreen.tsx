@@ -10,13 +10,12 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
-import { CaseRecord, CaseStatus, EvaluationResult, Language } from "../types";
+import { CaseRecord, CaseStatus, DprDocument, Language } from "../types";
 import { translations } from "../i18n";
 import { api } from "../services/api";
 
 interface Props {
   caseRecord: CaseRecord;
-  evaluation: EvaluationResult;
   onUpdateCase: (updated: CaseRecord) => void;
   onBack: () => void;
   lang: Language;
@@ -24,7 +23,6 @@ interface Props {
 
 export const DprScreen: React.FC<Props> = ({
   caseRecord,
-  evaluation,
   onUpdateCase,
   onBack,
   lang,
@@ -35,23 +33,24 @@ export const DprScreen: React.FC<Props> = ({
   const [statusReason, setStatusReason] = useState(caseRecord.status_reason || "");
   const [statusSuccess, setStatusSuccess] = useState(false);
 
-  const handleDownload = async (language: "mr" | "en") => {
-    setDownloadingLang(language);
-    try {
-      const res = await api.generateDpr(evaluation.id, language);
-      // Simulate / open download
-      const link = document.createElement("a");
-      link.href = res.download_url;
-      link.setAttribute("download", `DPR_${caseRecord.id}_${language}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const [lastDoc, setLastDoc] = useState<DprDocument | null>(null);
+  const [error, setError] = useState("");
+  const lead = caseRecord.output?.summary.top_packages[0];
 
-      // Auto update status to dpr_generated if still ready
+  const handleDownload = async (language: "mr" | "en") => {
+    if (!caseRecord.evaluation_id) return;
+    setDownloadingLang(language);
+    setError("");
+    try {
+      const doc = await api.generateDpr(caseRecord.evaluation_id, language);
+      setLastDoc(doc);
+      await api.downloadDpr(doc, `DPR_case${caseRecord.id}_${language}.pdf`);
       if (caseRecord.status === "ready") {
-        const updated = await api.updateCaseStatus(caseRecord.id, "dpr_generated");
-        if (updated) onUpdateCase(updated);
+        await api.updateCaseStatus(caseRecord.id, "dpr_generated");
+        onUpdateCase(await api.getCase(caseRecord.id));
       }
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setDownloadingLang(null);
     }
@@ -59,21 +58,16 @@ export const DprScreen: React.FC<Props> = ({
 
   const handleStatusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updated = await api.updateCaseStatus(
-      caseRecord.id,
-      newStatus,
-      statusReason
-    );
-    if (updated) {
-      onUpdateCase(updated);
+    setError("");
+    try {
+      await api.updateCaseStatus(caseRecord.id, newStatus, statusReason);
+      onUpdateCase(await api.getCase(caseRecord.id));
       setStatusSuccess(true);
       setTimeout(() => setStatusSuccess(false), 2000);
+    } catch (err) {
+      setError((err as Error).message);
     }
   };
-
-  const sha256 =
-    evaluation.dpr_documents?.[0]?.sha256 ||
-    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
   return (
     <div className="p-4 space-y-4 pb-20">
@@ -102,10 +96,10 @@ export const DprScreen: React.FC<Props> = ({
             </span>
             <h3 className="text-sm font-black">
               {caseRecord.beneficiary.first_name} —{" "}
-              {lang === "mr" ? caseRecord.business.name_mr : caseRecord.business.name_en}
+              {caseRecord.business ? (lang === "mr" ? caseRecord.business.name_mr : caseRecord.business.name_en) : caseRecord.business_code}
             </h3>
             <span className="text-xs text-emerald-200">
-              {lang === "mr" ? caseRecord.village.name_mr : caseRecord.village.name_en}
+              {caseRecord.village ? (lang === "mr" ? caseRecord.village.name_mr : caseRecord.village.name_en) : ""}
             </span>
           </div>
           <FileCheck className="w-8 h-8 text-emerald-300" />
@@ -138,16 +132,22 @@ export const DprScreen: React.FC<Props> = ({
           </button>
         </div>
 
+        {error && (
+          <div className="p-2.5 bg-red-900/60 rounded-xl border border-red-400 text-[11px] text-red-100">{error}</div>
+        )}
+
         {/* SHA-256 Hash Verification Badge */}
+        {lastDoc && (
         <div className="p-2.5 bg-emerald-950/60 rounded-xl border border-emerald-700/60 flex items-center gap-2 text-[10px] text-emerald-200">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <div className="truncate">
             <span className="font-bold block text-emerald-300">
               {t.sha256Label}
             </span>
-            <code className="text-[9px] font-mono opacity-80">{sha256}</code>
+            <code className="text-[9px] font-mono opacity-80">{lastDoc.file_sha256}</code>
           </div>
         </div>
+        )}
       </div>
 
       {/* Bank Submission Checklist */}
@@ -157,21 +157,15 @@ export const DprScreen: React.FC<Props> = ({
           {t.bankChecklistTitle}
         </h4>
         <ul className="space-y-1.5 text-xs text-slate-700">
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>{t.bankChecklistDoc1}</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>{t.bankChecklistDoc2}</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>{t.bankChecklistDoc3}</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>{t.bankChecklistDoc4}</span>
+          {(lead?.documents || []).map((d) => (
+            <li key={d} className="flex items-center gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>{d.replace(/_/g, " ")}</span>
+            </li>
+          ))}
+          <li className="flex items-center gap-2 text-slate-500">
+            <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>{lang === "mr" ? "आधार क्रमांक ॲपमध्ये साठवला जात नाही; मूळ कागदपत्रे बँकेत दाखवा." : "Aadhaar is never stored in the app; show originals at the bank."}</span>
           </li>
         </ul>
       </div>
@@ -183,26 +177,22 @@ export const DprScreen: React.FC<Props> = ({
           {t.portalToApplyTitle}
         </h4>
         <p className="text-xs text-indigo-900 font-semibold">{t.portalHint}</p>
-        <div className="flex items-center gap-3 pt-1">
-          <a
-            href="https://maha-cmegp.gov.in"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[11px] font-bold text-indigo-700 hover:underline flex items-center gap-1"
-          >
-            <span>महा-रोजगार पोर्टल</span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
-          <a
-            href="https://nsfdc.nic.in"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[11px] font-bold text-indigo-700 hover:underline flex items-center gap-1"
-          >
-            <span>NSFDC अधिकृत पोर्टल</span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
+        {lead && (
+          <div className="text-xs text-indigo-900 space-y-1 pt-1">
+            <div>
+              <strong>{lead.scheme_name?.[lang] || lead.scheme_name?.en || lead.scheme_code}</strong>: {lead.apply_at}
+            </div>
+            <a
+              href={lead.source_url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[11px] font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
+            >
+              <span>{lang === "mr" ? "अधिकृत स्रोत" : "Official source"}</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Track & Update Status Card */}

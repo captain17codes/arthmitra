@@ -1,16 +1,77 @@
-import React, { useState } from "react";
-import { Sparkles } from "lucide-react";
-import { BusinessType, CalibrationData, Language } from "../types";
+import React, { useEffect, useState } from "react";
+import { Info } from "lucide-react";
+import { BusinessParameters, BusinessType, CalibrationData, Language } from "../types";
 import { translations } from "../i18n";
+import { api } from "../services/api";
 import { VoiceFieldInput } from "../components/VoiceFieldInput";
 
 interface Props {
   business: BusinessType;
-  initialCalibration?: Partial<CalibrationData>;
+  initialCalibration?: CalibrationData;
   onEvaluate: (calibration: CalibrationData) => void;
   onBack: () => void;
   lang: Language;
+  busy?: boolean;
+  error?: string;
 }
+
+/**
+ * The 3 local numbers per business that move the result the most.
+ * Keys are the benchmark parameter names the backend viability engine reads,
+ * so whatever the agent enters overrides the default directly.
+ */
+const LOCAL_QUESTIONS: Record<string, Array<{ key: string; mr: string; en: string }>> = {
+  kirana: [
+    { key: "daily_customers", mr: "रोज किती ग्राहक येतील?", en: "Customers per day" },
+    { key: "average_bill_inr", mr: "एका ग्राहकाचे सरासरी बिल (₹)", en: "Average bill per customer (₹)" },
+    { key: "shop_rent_monthly", mr: "दुकान भाडे दरमहा (₹)", en: "Shop rent per month (₹)" },
+  ],
+  dairy: [
+    { key: "num_animals", mr: "जनावरांची संख्या", en: "Number of animals" },
+    { key: "daily_milk_yield_litres", mr: "प्रति जनावर रोज दूध (लिटर)", en: "Milk per animal per day (L)" },
+    { key: "milk_procurement_price", mr: "दूध संकलन केंद्राचा दर (₹/लिटर)", en: "Collection centre milk rate (₹/L)" },
+  ],
+  goatery: [
+    { key: "num_does", mr: "शेळ्यांची संख्या", en: "Number of does" },
+    { key: "average_kid_sale_price", mr: "एका करडाची विक्री किंमत (₹)", en: "Sale price per kid (₹)" },
+    { key: "kid_mortality_rate", mr: "करडे मरण्याचे प्रमाण (0–1)", en: "Kid mortality rate (0–1)" },
+  ],
+  broiler: [
+    { key: "batch_size", mr: "एका बॅचमध्ये पक्षी", en: "Birds per batch" },
+    { key: "batches_per_year", mr: "वर्षाला बॅच", en: "Batches per year" },
+    { key: "live_bird_price_per_kg", mr: "जिवंत पक्षी दर (₹/किलो)", en: "Live bird price (₹/kg)" },
+  ],
+  tailoring: [
+    { key: "jobs_per_day", mr: "रोज किती कपडे शिवाल?", en: "Jobs per day" },
+    { key: "average_stitching_fee", mr: "सरासरी शिलाई (₹)", en: "Average stitching fee (₹)" },
+    { key: "shop_rent_monthly", mr: "दुकान भाडे दरमहा (₹)", en: "Shop rent per month (₹)" },
+  ],
+  beauty_parlour: [
+    { key: "daily_clients", mr: "रोज किती ग्राहक?", en: "Clients per day" },
+    { key: "average_ticket_inr", mr: "एका ग्राहकाचे सरासरी बिल (₹)", en: "Average bill per client (₹)" },
+    { key: "rent_monthly", mr: "भाडे दरमहा (₹)", en: "Rent per month (₹)" },
+  ],
+  mobile_repair: [
+    { key: "daily_repairs", mr: "रोज किती दुरुस्त्या?", en: "Repairs per day" },
+    { key: "average_repair_margin", mr: "एका दुरुस्तीवर नफा (₹)", en: "Margin per repair (₹)" },
+    { key: "rent_monthly", mr: "भाडे दरमहा (₹)", en: "Rent per month (₹)" },
+  ],
+  two_wheeler_repair: [
+    { key: "daily_vehicles_serviced", mr: "रोज किती गाड्या?", en: "Vehicles serviced per day" },
+    { key: "average_labour_charge_per_bike", mr: "प्रति गाडी मजुरी (₹)", en: "Labour charge per bike (₹)" },
+    { key: "rent_monthly", mr: "भाडे दरमहा (₹)", en: "Rent per month (₹)" },
+  ],
+  flour_mill: [
+    { key: "daily_flour_milling_kg", mr: "रोज दळण (किलो)", en: "Flour milled per day (kg)" },
+    { key: "milling_rate_per_kg", mr: "दळणाचा दर (₹/किलो)", en: "Milling rate (₹/kg)" },
+    { key: "rent_monthly", mr: "भाडे दरमहा (₹)", en: "Rent per month (₹)" },
+  ],
+  papad_pickle: [
+    { key: "daily_production_kg", mr: "रोज उत्पादन (किलो)", en: "Production per day (kg)" },
+    { key: "average_selling_price_per_kg", mr: "विक्री दर (₹/किलो)", en: "Selling price (₹/kg)" },
+    { key: "rent_and_power_monthly", mr: "भाडे व वीज दरमहा (₹)", en: "Rent + power per month (₹)" },
+  ],
+};
 
 export const CalibrationScreen: React.FC<Props> = ({
   business,
@@ -18,90 +79,86 @@ export const CalibrationScreen: React.FC<Props> = ({
   onEvaluate,
   onBack,
   lang,
+  busy = false,
+  error,
 }) => {
   const t = translations[lang];
-
-  const [competitors, setCompetitors] = useState<number>(
-    initialCalibration?.competitor_count !== undefined
-      ? initialCalibration.competitor_count
-      : 3
+  const mr = lang === "mr";
+  const [params, setParams] = useState<BusinessParameters | null>(null);
+  const [paramsError, setParamsError] = useState<string>("");
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [competitors, setCompetitors] = useState<string>(
+    initialCalibration?.competitor_count !== undefined ? String(initialCalibration.competitor_count) : ""
   );
-  const [dailyCustomers, setDailyCustomers] = useState<number>(
-    initialCalibration?.daily_volume_or_customers || 40
-  );
-  const [rent, setRent] = useState<number>(
-    initialCalibration?.rent_monthly !== undefined
-      ? initialCalibration.rent_monthly
-      : 2000
-  );
-  const [ownPremises, setOwnPremises] = useState<boolean>(
-    initialCalibration?.own_premises || false
-  );
-  const [milkRate, setMilkRate] = useState<number>(
-    initialCalibration?.unit_price_or_rate || 38
-  );
-  const [animalsCount] = useState<number>(
-    initialCalibration?.special_asset_count || 2
-  );
-  const [fodderAvailable, setFodderAvailable] = useState<boolean>(true);
   const [udharPct, setUdharPct] = useState<number>(
-    initialCalibration?.udhar_pct !== undefined ? initialCalibration.udhar_pct : 15
+    initialCalibration?.udhar_pct !== undefined ? Math.round(Number(initialCalibration.udhar_pct) * 100) : 20
   );
+
+  const questions = LOCAL_QUESTIONS[business.code] || [];
+
+  useEffect(() => {
+    api
+      .getBusinessParameters(business.code)
+      .then((p) => {
+        setParams(p);
+        const all = { ...p.revenue_parameters, ...p.cost_parameters };
+        const init: Record<string, string> = {};
+        for (const q of questions) {
+          const fromCase = initialCalibration?.[q.key];
+          init[q.key] = fromCase !== undefined ? String(fromCase) : all[q.key] ? String(all[q.key].value) : "";
+        }
+        setValues(init);
+      })
+      .catch((e: Error) => setParamsError(e.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [business.code]);
+
+  const defaults = params ? { ...params.revenue_parameters, ...params.cost_parameters } : {};
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onEvaluate({
-      competitor_count: competitors,
-      daily_volume_or_customers: dailyCustomers,
-      rent_monthly: ownPremises ? 0 : rent,
-      own_premises: ownPremises,
-      unit_price_or_rate: business.code === "dairy" ? milkRate : undefined,
-      special_asset_count:
-        business.code === "dairy" || business.code === "goat"
-          ? animalsCount
-          : undefined,
-      fodder_available: fodderAvailable,
-      udhar_pct: udharPct,
-    });
+    const calib: CalibrationData = { udhar_pct: (udharPct / 100).toFixed(2) };
+    if (competitors !== "") calib.competitor_count = Number(competitors);
+    for (const q of questions) {
+      const v = values[q.key];
+      // Only send values the agent changed: unchanged values stay marked as "default" in the DPR.
+      if (v !== undefined && v !== "" && defaults[q.key] && Number(v) !== Number(defaults[q.key].value)) {
+        calib[q.key] = Number(v);
+      }
+    }
+    onEvaluate(calib);
   };
 
   return (
     <div className="p-4 space-y-4">
-      {/* Step Header */}
       <div>
         <span className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-          पायरी ५ / ५ · स्थानिक बाजार कॅलिब्रेशन
+          {mr ? "पायरी ५ / ५ · स्थानिक तपासणी" : "Step 5 / 5 · Local check"}
         </span>
-        <h2 className="text-base font-black text-slate-900 mt-1">
-          {t.calibrationTitle}
-        </h2>
+        <h2 className="text-base font-black text-slate-900 mt-1">{t.calibrationTitle}</h2>
         <p className="text-xs text-slate-500 mt-0.5">
-          {lang === "mr" ? business.name_mr : business.name_en} —{" "}
-          {t.calibrationSubtitle}
+          {mr ? business.name_mr : business.name_en} — {t.calibrationSubtitle}
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Competitor Count */}
-        <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-2">
-          <div className="flex items-start justify-between gap-2">
-            <label className="text-xs font-bold text-slate-800">
-              {t.competitorsNearLabel}
-            </label>
-            <span className="text-xs font-black px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200">
-              {competitors} दुकाने / स्पर्धक
-            </span>
-          </div>
+      {paramsError && (
+        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800">{paramsError}</div>
+      )}
 
-          <div className="grid grid-cols-5 gap-2 pt-1">
-            {[0, 1, 2, 3, 5, 8, 12].slice(0, 5).map((num) => (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-2">
+          <label htmlFor="competitors" className="text-xs font-bold text-slate-800 block">
+            {t.competitorsNearLabel}
+          </label>
+          <div className="grid grid-cols-6 gap-2">
+            {[0, 1, 2, 3, 5, 8].map((num) => (
               <button
                 key={num}
                 type="button"
-                onClick={() => setCompetitors(num)}
-                className={`py-2 px-1 rounded-xl text-xs font-bold border transition min-h-[44px] ${
-                  competitors === num
-                    ? "bg-indigo-600 text-white border-indigo-700 shadow-xs"
+                onClick={() => setCompetitors(String(num))}
+                className={`py-2 rounded-xl text-xs font-bold border transition min-h-[44px] ${
+                  competitors === String(num)
+                    ? "bg-indigo-600 text-white border-indigo-700"
                     : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                 }`}
               >
@@ -109,120 +166,58 @@ export const CalibrationScreen: React.FC<Props> = ({
               </button>
             ))}
           </div>
-          <span className="text-[10px] text-slate-400 block">
-            * बँक सखीने स्थानिक पाहणीनुसार नोंदवलेली खरी संख्या.
+          <input
+            id="competitors"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={competitors}
+            onChange={(e) => setCompetitors(e.target.value)}
+            placeholder={mr ? "किंवा संख्या टाका" : "or type a number"}
+            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold min-h-[44px]"
+          />
+          <span className="text-[10px] text-slate-500 block">
+            {mr
+              ? "स्थानिक पाहणीतील खरी संख्या. रिकामे ठेवल्यास बाजार स्पर्धा 'माहिती अपूर्ण' दाखवली जाईल."
+              : "Count from the local visit. If left blank, market competition shows as 'needs info'."}
           </span>
         </div>
 
-        {/* Business-Specific Questions */}
-        {business.code === "dairy" ? (
-          <div className="p-3.5 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-3">
-            <div>
-              <VoiceFieldInput
-                label={t.milkRateLabel}
-                type="number"
-                min={25}
-                max={60}
-                value={milkRate}
-                onChange={(val) => setMilkRate(Number(val) || 38)}
-                language={lang}
-                suffix="₹/L"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-1">
-                {t.fodderAvailableLabel}
-              </label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFodderAvailable(true)}
-                  className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold border min-h-[44px] ${
-                    fodderAvailable
-                      ? "bg-blue-600 text-white border-blue-700"
-                      : "bg-white text-slate-700 border-slate-300"
-                  }`}
-                >
-                  {t.yes}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFodderAvailable(false)}
-                  className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold border min-h-[44px] ${
-                    !fodderAvailable
-                      ? "bg-white text-slate-900 border-slate-400 shadow-2xs"
-                      : "bg-white text-slate-700 border-slate-300"
-                  }`}
-                >
-                  {t.no}
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
-            <div>
-              <VoiceFieldInput
-                label={t.dailyCustomersLabel}
-                type="number"
-                min={5}
-                max={500}
-                value={dailyCustomers}
-                onChange={(val) => setDailyCustomers(Number(val) || 0)}
-                language={lang}
-                suffix="ग्राहक"
-              />
-            </div>
-
-            {/* Own premises & Rent */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-bold text-slate-800">
-                  {t.ownPremisesLabel}
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setOwnPremises(!ownPremises)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold border transition ${
-                    ownPremises
-                      ? "bg-emerald-600 text-white border-emerald-700"
-                      : "bg-slate-100 text-slate-700 border-slate-300"
-                  }`}
-                >
-                  {ownPremises ? t.yes : t.no}
-                </button>
-              </div>
-
-              {!ownPremises && (
-                <div className="pt-2">
+        <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+          {!params && !paramsError && <div className="text-xs text-slate-500">{t.loading}</div>}
+          {params &&
+            questions.map((q) => {
+              const d = defaults[q.key];
+              return (
+                <div key={q.key}>
                   <VoiceFieldInput
-                    label={t.monthlyRentLabel}
+                    label={mr ? q.mr : q.en}
                     type="number"
-                    step={500}
-                    value={rent}
-                    onChange={(val) => setRent(Number(val) || 0)}
+                    value={values[q.key] ?? ""}
+                    onChange={(val) => setValues((prev) => ({ ...prev, [q.key]: String(val) }))}
                     language={lang}
-                    suffix="₹/महिना"
                   />
+                  {d && (
+                    <p className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1">
+                      <Info className="w-3 h-3" />
+                      {mr ? "मानक" : "Default"}: {d.value} {d.unit || ""} · {d.confidence || "estimate"}
+                      {d.source_title ? ` · ${d.source_title}` : ""}
+                    </p>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        )}
+              );
+            })}
+        </div>
 
-        {/* Initial Udhar Stress Calibration */}
-        <div className="p-3.5 bg-amber-50/60 rounded-2xl border border-amber-200 space-y-2">
+        <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200 space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-amber-950">
+            <label htmlFor="udhar" className="text-xs font-bold text-amber-950">
               {t.udharSliderLabel}
             </label>
-            <span className="text-xs font-black text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
-              {udharPct}%
-            </span>
+            <span className="text-xs font-black text-amber-900 bg-amber-200 px-2 py-0.5 rounded">{udharPct}%</span>
           </div>
-
           <input
+            id="udhar"
             type="range"
             min={0}
             max={50}
@@ -231,27 +226,25 @@ export const CalibrationScreen: React.FC<Props> = ({
             onChange={(e) => setUdharPct(parseInt(e.target.value) || 0)}
             className="w-full h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
           />
-
-          <span className="text-[10px] text-amber-800 block leading-tight">
-            * ग्रामीण भागात सरासरी १०% ते २५% विक्री उधारीवर चालते.
-          </span>
         </div>
 
-        {/* Buttons */}
-        <div className="pt-2 flex items-center gap-3">
+        {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800">{error}</div>}
+
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onBack}
+            disabled={busy}
             className="flex-1 py-3 px-4 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition min-h-[48px]"
           >
             {t.back}
           </button>
           <button
             type="submit"
-            className="flex-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition min-h-[48px] flex items-center justify-center gap-1.5"
+            disabled={busy || !params}
+            className="flex-[2] py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs shadow-sm transition min-h-[48px]"
           >
-            <Sparkles className="w-4 h-4" />
-            {t.calculateViabilityBtn}
+            {busy ? (mr ? "गणना सुरू आहे…" : "Calculating…") : mr ? "मूल्यांकन करा →" : "Evaluate →"}
           </button>
         </div>
       </form>
