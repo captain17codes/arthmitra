@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -9,16 +10,37 @@ from .routers import admin, advisory, auth, beneficiaries, cases, dashboard, dpr
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup actions: ensure database tables & baseline seed exist
+    # Startup actions: enable extensions, ensure tables & baseline seed exist
+    from sqlalchemy import text
+
+    from models import spatial
+
     from .database import Base, async_session_maker, engine
     from .seed import seed_all
+
+    if engine.dialect.name == "postgresql":
+        for ext in ("postgis", "pg_trgm"):
+            try:
+                async with engine.begin() as conn:
+                    await conn.execute(text(f"CREATE EXTENSION IF NOT EXISTS {ext}"))
+                if ext == "postgis":
+                    spatial.POSTGIS_ENABLED = True
+            except Exception as e:  # extension not installed on this server
+                print(f"WARNING: could not enable extension {ext}: {e}")
+
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         async with async_session_maker() as session:
             await seed_all(session)
+        if os.getenv("SEED_DEMO_DATA", "").lower() == "true":
+            from seed_demo import init_and_seed_database
+
+            await init_and_seed_database()
     except Exception as e:
-        print(f"Startup DB init notice: {e}")
+        print(f"FATAL: database initialisation failed: {e!r}")
+        if settings.environment == "production":
+            raise  # fail the deploy loudly instead of serving 500s
     yield
     # Shutdown actions
 

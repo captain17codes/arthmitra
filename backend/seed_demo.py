@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from app.config import settings
@@ -20,8 +20,9 @@ from models.village import Village, VillageNeighbour
 
 async def init_and_seed_database():
     """Initializes schema and seeds demo organizations, agents, schemes, and villages."""
-    print(f"Connecting to database: {settings.database_url}")
-    engine = create_async_engine(settings.database_url, echo=False)
+    print("Seeding demo data...")
+    # Reuse the app engine: it already converts Render's postgres:// URL to asyncpg.
+    from app.database import engine
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -207,7 +208,6 @@ async def init_and_seed_database():
         await session.commit()
         print("Database seeding completed successfully!")
 
-    await engine.dispose()
 
 
 if __name__ == "__main__":

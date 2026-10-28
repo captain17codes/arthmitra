@@ -6,6 +6,7 @@ services:
     dockerContext: .
     plan: free
     region: singapore
+    healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -17,6 +18,8 @@ services:
         value: production
       - key: DEBUG
         value: "false"
+      - key: SEED_DEMO_DATA
+        value: "true"   # demo users + 3 villages; set to "false" once real data is loaded
       - key: NOMINATIM_EMAIL
         value: support@arthmitra.org.in
 

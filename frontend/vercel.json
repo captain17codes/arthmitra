@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/(auth|api|cases|beneficiaries|geo|meta|speech|admin|dashboard)/:path*",
-      "destination": "https://api.arthmitra.org.in/:path*"
+      "destination": "https://arthmitra-api.onrender.com/$1/:path*"
     },
     {
       "source": "/(.*)",
