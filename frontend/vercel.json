@@ -4,8 +4,12 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/(auth|api|cases|beneficiaries|geo|meta|speech|admin|dashboard|evaluations|dpr)/:path*",
-      "destination": "https://arthmitra-api.onrender.com/$1/:path*"
+      "source": "/:prefix(auth|api|cases|beneficiaries|geo|meta|speech|admin|dashboard|evaluations|dpr)",
+      "destination": "https://arthmitra-api.onrender.com/:prefix"
+    },
+    {
+      "source": "/:prefix(auth|api|cases|beneficiaries|geo|meta|speech|admin|dashboard|evaluations|dpr)/:path+",
+      "destination": "https://arthmitra-api.onrender.com/:prefix/:path+"
     },
     {
       "source": "/(.*)",

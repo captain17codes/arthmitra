@@ -64,6 +64,33 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+class _TrailingSlashMiddleware:
+    """
+    Serve '/cases/' as '/cases' (and vice versa) in place, instead of a 307 redirect.
+    Behind the Vercel proxy a redirect points the browser at another origin and the
+    Authorization header is dropped, which logged agents straight back out.
+    """
+
+    def __init__(self, asgi_app):
+        self.asgi_app = asgi_app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            path = scope["path"]
+            if path != "/" and not self._matches(scope):
+                alt = path.rstrip("/") if path.endswith("/") else path + "/"
+                alt_scope = {**scope, "path": alt, "raw_path": alt.encode()}
+                if self._matches(alt_scope):
+                    scope = alt_scope
+        await self.asgi_app(scope, receive, send)
+
+    @staticmethod
+    def _matches(scope) -> bool:
+        from starlette.routing import Match
+
+        return any(r.matches(scope)[0] == Match.FULL for r in app.router.routes)
+
+
 _cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
@@ -73,6 +100,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
+app.add_middleware(_TrailingSlashMiddleware)
 
 
 @app.middleware("http")
