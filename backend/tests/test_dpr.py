@@ -256,3 +256,39 @@ async def test_dpr_api_workflow(dpr_client):
     assert dl_res.status_code == 200
     assert dl_res.headers["content-type"] == "application/pdf"
     assert dl_res.content[:4] == b"%PDF"
+
+
+def test_dpr_builder_uses_only_computed_values():
+    """Regression: no invented cost split, real promoter name, honest DSCR conclusion, scheme documents."""
+    from dpr.builder import build_dpr_sections, format_currency_inr
+    from dpr.renderer import _init_pdf_fonts, _markup
+
+    assert format_currency_inr(2948400) == "₹29,48,400.00"
+    out = {
+        "summary": {
+            "project_cost": "200000",
+            "average_dscr": "0.90",
+            "dscr_passed": False,
+            "top_packages": [{
+                "scheme_code": "PMEGP", "scheme_name": {"en": "PMEGP", "mr": "पीएमईजीपी"},
+                "documents": ["caste_certificate"], "apply_at": "kviconline.gov.in",
+                "source_url": "https://kviconline.gov.in", "subsidy_treatment": "fdr_3yr",
+            }],
+        },
+        "viability": {"dscr_target": "1.25", "inputs_used": {"daily_customers": "local"}, "warnings": ["W1"]},
+    }
+    snap = {"inputs": {"daily_customers": "40"}, "beneficiary": {}, "village": {}}
+    bench = {"capex": {"shelves": {"value": 35000, "confidence": "estimate"}},
+             "revenue_parameters": {"daily_customers": {"value": 65, "unit": "customers/day"}}}
+    secs = {s.section_number: s for s in build_dpr_sections(out, snap, "en", promoter_name="Asha", benchmark=bench)}
+    assert "Promoter Name: Asha" in secs[1].content_en
+    assert "shelves" in secs[4].content_en and "₹1,65,000.00" in secs[4].content_en  # balance, not a 90/5/5 split
+    assert "Contingency" not in secs[4].content_en
+    assert "entered locally" in secs[6].content_en
+    assert "below the bank threshold" in secs[8].content_en
+    assert "W1" in secs[10].content_en
+    assert "caste certificate" in secs[11].content_en and "kviconline.gov.in" in secs[11].content_en
+
+    assert _init_pdf_fonts() is True
+    m = _markup("गाव (Village) A&B", True)
+    assert "&amp;" in m and '<font name="NotoLatin">(Village) A&amp;B</font>' in m

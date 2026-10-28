@@ -180,3 +180,37 @@ def test_foir_limit_check():
     assert res_fail.foir_passed is False
     assert res_fail.foir_pct == Decimal("60.00")
     assert any("exceeds the 50% limit" in w for w in res_fail.warnings)
+
+
+def test_cost_structure_uses_benchmark_costs_not_assumed_ratio():
+    """Regression: costs must come from each benchmark file, never a default 50% share."""
+    from decimal import Decimal
+    from pathlib import Path
+
+    import yaml
+
+    from engines.viability.calculator import cost_structure
+
+    root = Path(__file__).resolve().parents[2] / "data" / "benchmarks"
+    kirana = yaml.safe_load((root / "kirana.yaml").read_text())
+    share, per_unit, fixed = cost_structure("kirana", kirana, {})
+    assert share == Decimal("1") - Decimal("0.16")
+    assert per_unit == 0
+    assert fixed == Decimal("68400.00")  # (3000 + 1500 + 1200) × 12
+
+    broiler = yaml.safe_load((root / "broiler.yaml").read_text())
+    share, per_unit, fixed = cost_structure("broiler", broiler, {})
+    assert share == 0
+    assert per_unit == Decimal("510000.00")  # (38 + 120 + 12) × 500 birds × 6 batches
+
+    goatery = yaml.safe_load((root / "goatery.yaml").read_text())
+    _, _, fixed = cost_structure("goatery", goatery, {})
+    assert fixed == Decimal("39600.00")  # 24000 + 6000 annual + 800 × 12
+
+    papad = yaml.safe_load((root / "papad_pickle.yaml").read_text())
+    share, _, _ = cost_structure("papad_pickle", papad, {})
+    assert share == Decimal("0.63")  # raw material 0.55 + packaging 0.08
+
+    # Local override wins
+    share, _, _ = cost_structure("kirana", kirana, {"gross_margin_pct": "0.12"})
+    assert share == Decimal("0.88")

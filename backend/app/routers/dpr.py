@@ -53,6 +53,7 @@ async def generate_dpr(
         eval_output=ev.output,
         input_snapshot=ev.input_snapshot,
         output_dir=DPR_STORAGE_DIR,
+        promoter_name=ev.case.beneficiary.first_name,
         language=language,
     )
 
@@ -71,6 +72,7 @@ async def generate_dpr(
             eval_output=ev.output,
             input_snapshot=ev.input_snapshot,
             output_dir=DPR_STORAGE_DIR,
+            promoter_name=ev.case.beneficiary.first_name,
             language="en",
         )
         doc_en = DprDocument(
@@ -168,6 +170,7 @@ async def download_dpr(
             eval_output=ev.output,
             input_snapshot=ev.input_snapshot,
             output_dir=DPR_STORAGE_DIR,
+            promoter_name=ev.case.beneficiary.first_name,
             language=doc.language,
         )
         doc.object_key = regenerated.file_path

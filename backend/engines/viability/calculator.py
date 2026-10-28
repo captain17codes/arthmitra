@@ -14,6 +14,64 @@ from .models import ViabilityInput, ViabilityResult, YearlyProjection
 from .revenue_models import REVENUE_MODELS
 
 
+def _val(params: dict[str, Any], calib: dict[str, Any], key: str) -> Decimal:
+    return Decimal(str(calib.get(key, params[key]["value"])))
+
+
+def _units_per_year(business_code: str, rev_params: dict[str, Any], calib: dict[str, Any]) -> Decimal | None:
+    """Physical units placed per year at 100% capacity, for per-unit cost parameters."""
+    if business_code == "broiler":
+        return _val(rev_params, calib, "batch_size") * _val(rev_params, calib, "batches_per_year")
+    return None
+
+
+def cost_structure(
+    business_code: str, benchmark_data: dict[str, Any], calib: dict[str, Any]
+) -> tuple[Decimal, Decimal, Decimal]:
+    """
+    Returns (variable cost share of revenue, per-unit variable cost per year at 100% capacity,
+    annual fixed costs), using only parameters present in the benchmark file:
+
+    - ``*_share`` cost parameters are summed into the variable share of revenue.
+    - ``gross_margin_pct`` (trading) means cost of goods = (1 - margin) of revenue.
+    - ``*_per_<unit>`` parameters are multiplied by units placed per year (broiler: birds).
+    - ``*_monthly`` × 12 and ``*_annual`` are fixed costs.
+    - A business with none of these (e.g. job-work milling, repair margins) has no variable
+      cost beyond what its revenue model already nets out. Nothing defaults to an assumed ratio.
+    """
+    rev_params = benchmark_data.get("revenue_parameters", {})
+    cost_params = benchmark_data.get("cost_parameters", {})
+
+    if "variable_cost_share" in calib:
+        var_share = Decimal(str(calib["variable_cost_share"]))
+    else:
+        var_share = Decimal("0")
+        for k in cost_params:
+            if k.endswith("_share"):
+                var_share += _val(cost_params, calib, k)
+        if "gross_margin_pct" in rev_params:
+            var_share += Decimal("1") - _val(rev_params, calib, "gross_margin_pct")
+
+    per_unit_total = Decimal("0")
+    for k in cost_params:
+        if "_per_" in k and not k.endswith(("_monthly", "_annual")):
+            per_unit_total += _val(cost_params, calib, k)
+    per_unit_var_annual = Decimal("0")
+    if per_unit_total > 0:
+        units = _units_per_year(business_code, rev_params, calib)
+        if units is None:
+            raise ValueError(f"Per-unit cost parameters for {business_code} need a unit count model")
+        per_unit_var_annual = round_curr(per_unit_total * units)
+
+    fixed = Decimal("0")
+    for k in cost_params:
+        if k.endswith("_monthly"):
+            fixed += _val(cost_params, calib, k) * Decimal("12")
+        elif k.endswith("_annual"):
+            fixed += _val(cost_params, calib, k)
+    return var_share, per_unit_var_annual, round_curr(fixed)
+
+
 def evaluate_viability(
     input_data: ViabilityInput,
     benchmark_data: dict[str, Any],
@@ -30,30 +88,13 @@ def evaluate_viability(
 
     rev_fn = REVENUE_MODELS[business_code]
     rev_params = benchmark_data.get("revenue_parameters", {})
-    cost_params = benchmark_data.get("cost_parameters", {})
     calib = input_data.calibration_overrides
 
     # 1. 100% capacity annual revenue
     base_annual_revenue = round_curr(rev_fn(rev_params, calib))
 
-    # 2. Costs at 100% capacity
-    # Variable cost can be given as a share of revenue or specific sum
-    var_share = Decimal(str(calib.get(
-        "variable_cost_share",
-        cost_params.get("fodder_and_feed_share", {}).get("value")
-        or cost_params.get("raw_material_share", {}).get("value")
-        or cost_params.get("consumables_share", {}).get("value")
-        or cost_params.get("cosmetics_consumables_share", {}).get("value")
-        or Decimal("0.50")
-    )))
-
-    # Fixed monthly costs (rent, power, maintenance)
-    fixed_monthly = Decimal("0.00")
-    for k, v in cost_params.items():
-        if "monthly" in k and isinstance(v, dict) and "value" in v:
-            fixed_monthly += Decimal(str(calib.get(k, v["value"])))
-
-    annual_fixed_costs = round_curr(fixed_monthly * Decimal("12"))
+    # 2. Costs, built only from the benchmark's own cost parameters (no invented ratios).
+    var_share, per_unit_var_annual, annual_fixed_costs = cost_structure(business_code, benchmark_data, calib)
 
     # Depreciation: straight-line on capex
     depreciation_rate = Decimal(str(benchmark_data.get("depreciation_rate", "0.10")))
@@ -70,7 +111,7 @@ def evaluate_viability(
     for yr in range(1, 6):
         cap_util = ramp[yr - 1] if yr <= len(ramp) else ramp[-1]
         gross_rev = round_curr(base_annual_revenue * cap_util)
-        var_cost = round_curr(gross_rev * var_share)
+        var_cost = round_curr(gross_rev * var_share + per_unit_var_annual * cap_util)
         fixed_cost = annual_fixed_costs
         deprec = annual_depreciation
 

@@ -1,52 +1,62 @@
 from __future__ import annotations
 
 import hashlib
-import os
+import re
 from pathlib import Path
 from typing import Any
+from xml.sax.saxutils import escape
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.pdfmetrics import registerFontFamily
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer
+
+from engines.viability.loader import load_benchmark
 
 from .builder import build_dpr_sections
 from .models import DprResult
 
-# Font registration helper
-_FONT_REGISTERED = False
-_ACTIVE_FONT_NAME = "Helvetica"
+# Font registration: bundled Noto fonts so Marathi + ₹ render on any host.
+_FONT_DIR = Path(__file__).resolve().parent / "fonts"
+_FONTS_READY: bool | None = None
+_DEVA = "NotoDeva"
+_LATIN = "NotoLatin"
+# Latin words (plus bullets/dashes/&, which the Devanagari font lacks) go to the Latin font.
+# Whole whitespace-delimited tokens are routed, because ReportLab shapes a word with one font.
+_LATIN_RUN = re.compile(r"[^\sऀ-ॿ]*[A-Za-z•&—–][^\sऀ-ॿ]*(?:\s+[^\sऀ-ॿ]*[A-Za-z•&—–][^\sऀ-ॿ]*)*")
 
 
-def _init_pdf_fonts() -> str:
-    """Register Devanagari / Unicode TTF font if available on OS."""
-    global _FONT_REGISTERED, _ACTIVE_FONT_NAME
-    if _FONT_REGISTERED:
-        return _ACTIVE_FONT_NAME
+def _init_pdf_fonts() -> bool:
+    """Register Noto Sans Devanagari (shaped) + Noto Sans (Latin). Returns False if unavailable."""
+    global _FONTS_READY
+    if _FONTS_READY is not None:
+        return _FONTS_READY
+    try:
+        for fam, base in ((_DEVA, "NotoSansDevanagari"), (_LATIN, "NotoSans")):
+            pdfmetrics.registerFont(TTFont(fam, str(_FONT_DIR / f"{base}-Regular.ttf")))
+            pdfmetrics.registerFont(TTFont(f"{fam}-Bold", str(_FONT_DIR / f"{base}-Bold.ttf")))
+            registerFontFamily(fam, normal=fam, bold=f"{fam}-Bold", italic=fam, boldItalic=f"{fam}-Bold")
+        _FONTS_READY = True
+    except Exception:
+        _FONTS_READY = False
+    return _FONTS_READY
 
-    # Candidate Devanagari fonts on Windows and Linux
-    candidate_paths = [
-        ("Devanagari", "C:/Windows/Fonts/mangal.ttf"),
-        ("Devanagari", "C:/Windows/Fonts/Nirmala.ttc"),
-        ("Devanagari", "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf"),
-        ("Devanagari", "/usr/share/fonts/opentype/noto/NotoSansDevanagari-Regular.otf"),
-    ]
 
-    for name, f_path in candidate_paths:
-        if os.path.exists(f_path):
-            try:
-                pdfmetrics.registerFont(TTFont(name, f_path))
-                _ACTIVE_FONT_NAME = name
-                _FONT_REGISTERED = True
-                return name
-            except Exception:
-                continue
-
-    _FONT_REGISTERED = True
-    _ACTIVE_FONT_NAME = "Helvetica"
-    return _ACTIVE_FONT_NAME
+def _markup(text: str, fonts_ok: bool) -> str:
+    """Escape text for Paragraph and route Latin runs to the Latin font (Devanagari font has no Latin)."""
+    if not fonts_ok:
+        return escape(text)
+    out: list[str] = []
+    pos = 0
+    for m in _LATIN_RUN.finditer(text):
+        out.append(escape(text[pos:m.start()]))
+        out.append(f'<font name="{_LATIN}">{escape(m.group(0))}</font>')
+        pos = m.end()
+    out.append(escape(text[pos:]))
+    return "".join(out)
 
 
 def render_dpr_pdf(
@@ -55,15 +65,23 @@ def render_dpr_pdf(
     input_snapshot: dict[str, Any],
     output_dir: Path,
     language: str = "mr",
+    promoter_name: str | None = None,
 ) -> DprResult:
     """
     Render a 12-section bank-ready DPR PDF document.
     Adheres strictly to TECH_SPEC §7.2 with verifiable SHA-256 document integrity.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    font_name = _init_pdf_fonts()
+    fonts_ok = _init_pdf_fonts()
+    font_name = _DEVA if fonts_ok else "Helvetica"
+    shaping = 1 if fonts_ok else 0
 
-    sections = build_dpr_sections(eval_output, input_snapshot, language)
+    business_code = input_snapshot.get("business_code") or (eval_output.get("summary") or {}).get("business_code")
+    try:
+        benchmark = load_benchmark(business_code) if business_code else None
+    except Exception:
+        benchmark = None
+    sections = build_dpr_sections(eval_output, input_snapshot, language, promoter_name=promoter_name, benchmark=benchmark)
     summary = (eval_output.get("summary") or {})
     b_name_mr = summary.get("business_name_mr", "व्यवसाय")
     b_name_en = summary.get("business_name_en", "Business")
@@ -91,6 +109,7 @@ def render_dpr_pdf(
         "DprTitle",
         parent=styles["Title"],
         fontName=font_name,
+        shaping=shaping,
         fontSize=18,
         leading=22,
         textColor=colors.HexColor("#1A365D"),  # Deep Navy
@@ -100,6 +119,7 @@ def render_dpr_pdf(
         "DprSubtitle",
         parent=styles["Normal"],
         fontName=font_name,
+        shaping=shaping,
         fontSize=11,
         leading=14,
         textColor=colors.HexColor("#4A5568"),
@@ -109,6 +129,7 @@ def render_dpr_pdf(
         "DprSecHeading",
         parent=styles["Heading2"],
         fontName=font_name,
+        shaping=shaping,
         fontSize=12,
         leading=15,
         textColor=colors.HexColor("#2B6CB0"),
@@ -119,6 +140,7 @@ def render_dpr_pdf(
         "DprBody",
         parent=styles["Normal"],
         fontName=font_name,
+        shaping=shaping,
         fontSize=9.5,
         leading=13,
         textColor=colors.HexColor("#2D3748"),
@@ -127,20 +149,18 @@ def render_dpr_pdf(
     elements = []
 
     # 1. Header Banner
-    elements.append(Paragraph("<b>सविस्तर प्रकल्प अहवाल (DETAILED PROJECT REPORT - DPR)</b>", title_style))
+    def para(text: str, style: ParagraphStyle, bold: bool = False) -> Paragraph:
+        body = _markup(text, fonts_ok)
+        return Paragraph(f"<b>{body}</b>" if bold else body, style)
+
+    elements.append(para("सविस्तर प्रकल्प अहवाल (DETAILED PROJECT REPORT - DPR)", title_style, bold=True))
     elements.append(Spacer(1, 4))
     elements.append(
-        Paragraph(
-            f"<b>{b_name_mr} ({b_name_en}) | {v_name} | योजना: {sc_code}</b>",
-            subtitle_style,
-        )
+        para(f"{b_name_mr} ({b_name_en}) | {v_name} | योजना / Scheme: {sc_code}", subtitle_style, bold=True)
     )
     elements.append(Spacer(1, 4))
     elements.append(
-        Paragraph(
-            f"ArthMitra Reference Case ID: #{case_id} | Language: {language.upper()} | Bank Appraisal Copy",
-            subtitle_style,
-        )
+        para(f"ArthMitra Reference Case ID: #{case_id} | Language: {language.upper()} | Bank Appraisal Copy", subtitle_style)
     )
     elements.append(Spacer(1, 8))
     elements.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#2B6CB0"), spaceAfter=12))
@@ -149,7 +169,7 @@ def render_dpr_pdf(
     for sec in sections:
         # Title
         sec_title = sec.title_mr if language == "mr" else sec.title_en
-        elements.append(Paragraph(f"<b>{sec_title}</b>", section_heading_style))
+        elements.append(para(sec_title, section_heading_style, bold=True))
 
         # Content lines
         raw_content = sec.content_mr if language == "mr" else sec.content_en
@@ -158,7 +178,7 @@ def render_dpr_pdf(
             if not line_str:
                 continue
             # Highlight bullet points or key-value rows
-            elements.append(Paragraph(line_str, body_style))
+            elements.append(para(line_str, body_style))
             elements.append(Spacer(1, 2))
 
         elements.append(Spacer(1, 6))

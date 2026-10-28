@@ -43,6 +43,45 @@ class CaseStatusPatch(BaseModel):
     status_reason_code: str | None = None
 
 
+def _case_summary(c: Case) -> dict[str, Any]:
+    """Display fields for case lists/details (relationships must be loaded)."""
+    b, v, bt = c.beneficiary, c.village, c.business_type
+    return {
+        "id": c.id,
+        "beneficiary_id": c.beneficiary_id,
+        "beneficiary": {
+            "first_name": b.first_name if b else None,
+            "gender": b.gender if b else None,
+            "age": b.age if b else None,
+            "category": b.category if b else None,
+        },
+        "village_lgd": c.village_lgd,
+        "village": {
+            "lgd_code": v.lgd_code,
+            "name_en": v.name_en,
+            "name_mr": v.name_mr,
+            "subdistrict_name": v.subdistrict_name,
+            "district_name": v.district_name,
+            "pop_2011": v.pop_2011,
+        } if v else None,
+        "business_code": c.business_code,
+        "business": {
+            "code": bt.code,
+            "name_en": bt.name_en,
+            "name_mr": bt.name_mr,
+            "name_hi": bt.name_hi,
+            "sector": bt.sector.value if hasattr(bt.sector, "value") else bt.sector,
+        } if bt else None,
+        "margin_available": str(c.margin_available),
+        "target_project_cost": str(c.target_project_cost) if c.target_project_cost else None,
+        "language": c.language,
+        "status": c.status.value,
+        "status_reason_code": c.status_reason_code,
+        "created_at": c.created_at,
+        "updated_at": getattr(c, "updated_at", None),
+    }
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_case(
     req: CaseCreate,
@@ -124,6 +163,11 @@ async def list_cases(
     """List all cases created within user's organization."""
     query = (
         select(Case)
+        .options(
+            selectinload(Case.beneficiary),
+            selectinload(Case.village),
+            selectinload(Case.business_type),
+        )
         .join(Beneficiary)
         .where(Beneficiary.org_id == user.org_id, Beneficiary.deleted_at.is_(None))
         .order_by(Case.created_at.desc())
@@ -133,22 +177,9 @@ async def list_cases(
 
     res = await db.execute(query)
     cases = res.scalars().all()
-
-    return [
-        {
-            "id": c.id,
-            "beneficiary_id": c.beneficiary_id,
-            "village_lgd": c.village_lgd,
-            "business_code": c.business_code,
-            "margin_available": str(c.margin_available),
-            "target_project_cost": str(c.target_project_cost) if c.target_project_cost else None,
-            "language": c.language,
-            "status": c.status.value,
-            "status_reason_code": c.status_reason_code,
-            "created_at": c.created_at,
-        }
-        for c in cases
-    ]
+    await log_processing(db=db, actor_id=user.id, purpose="List cases", entity="cases", entity_id="*")
+    await db.commit()
+    return [_case_summary(c) for c in cases]
 
 
 @router.get("/{case_id}")
@@ -188,21 +219,13 @@ async def get_case(
     await db.commit()
 
     inputs_dict = {inp.key: inp.value for inp in c.inputs}
-    latest_eval = c.evaluations[-1] if c.evaluations else None
+    latest_eval = max(c.evaluations, key=lambda e: e.id) if c.evaluations else None
 
     return {
-        "id": c.id,
-        "beneficiary_id": c.beneficiary_id,
+        **_case_summary(c),
         "beneficiary_name": c.beneficiary.first_name,
-        "village_lgd": c.village_lgd,
         "village_name": c.village.name_en if c.village else None,
-        "business_code": c.business_code,
         "business_name": c.business_type.name_en if c.business_type else None,
-        "margin_available": str(c.margin_available),
-        "target_project_cost": str(c.target_project_cost) if c.target_project_cost else None,
-        "language": c.language,
-        "status": c.status.value,
-        "status_reason_code": c.status_reason_code,
         "inputs": inputs_dict,
         "latest_evaluation": (
             {
@@ -214,7 +237,6 @@ async def get_case(
             if latest_eval
             else None
         ),
-        "created_at": c.created_at,
     }
 
 

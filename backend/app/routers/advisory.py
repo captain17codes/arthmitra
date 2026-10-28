@@ -96,9 +96,10 @@ async def get_advisory(
         select(Advisory)
         .options(selectinload(Advisory.evaluation).selectinload(Evaluation.case).selectinload(Case.beneficiary))
         .where(Advisory.evaluation_id == evaluation_id)
-        .order_by(Advisory.created_at.desc())
+        .order_by(Advisory.created_at.desc(), Advisory.id.desc())
+        .limit(1)
     )
-    adv = res.scalar_one_or_none()
+    adv = res.scalars().first()
     if not adv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Advisory report not found")
 
