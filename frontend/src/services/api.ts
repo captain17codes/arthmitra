@@ -228,6 +228,11 @@ export const api = {
     return request("/auth/otp/request", { method: "POST", body: JSON.stringify({ phone }) });
   },
 
+  /** Exchange a Firebase phone-auth ID token for the same result as verifyOtp. */
+  async verifyFirebase(idToken: string): Promise<OtpVerifyResult> {
+    return request("/auth/firebase", { method: "POST", body: JSON.stringify({ id_token: idToken }) });
+  },
+
   async verifyOtp(phone: string, otp: string): Promise<OtpVerifyResult> {
     return request("/auth/otp/verify", { method: "POST", body: JSON.stringify({ phone, otp }) });
   },

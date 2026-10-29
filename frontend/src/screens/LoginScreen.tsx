@@ -3,6 +3,7 @@ import { KeyRound, Lock, MessageSquareText, Phone, ShieldCheck, UserRound } from
 import { Language, User } from "../types";
 import { translations } from "../i18n";
 import { api, ApiError } from "../services/api";
+import { firebaseConfirmOtp, firebaseEnabled, firebaseSendOtp } from "../services/firebaseOtp";
 
 interface Props {
   lang: Language;
@@ -169,8 +170,13 @@ export const LoginScreen: React.FC<Props> = ({ lang, onLoginSuccess }) => {
     if (!validPhone(phone)) return setError(L.badPhone);
     run(async () => {
       try {
-        const r = await api.requestOtp(phone);
-        setDevOtp(r.dev_otp ?? null);
+        if (firebaseEnabled()) {
+          await firebaseSendOtp(phone, "otp-send-btn");
+          setDevOtp(null);
+        } else {
+          const r = await api.requestOtp(phone);
+          setDevOtp(r.dev_otp ?? null);
+        }
         setOtp("");
         setMode("otp_code");
       } catch (err) {
@@ -184,7 +190,9 @@ export const LoginScreen: React.FC<Props> = ({ lang, onLoginSuccess }) => {
     if (otp.length !== 6) return setError(L.needOtp);
     run(async () => {
       try {
-        const r = await api.verifyOtp(phone, otp);
+        const r = firebaseEnabled()
+          ? await api.verifyFirebase(await firebaseConfirmOtp(otp))
+          : await api.verifyOtp(phone, otp);
         setSetupToken(r.setup_token);
         setIsNewUser(r.is_new_user);
         setExistingName(r.name);
@@ -297,7 +305,7 @@ export const LoginScreen: React.FC<Props> = ({ lang, onLoginSuccess }) => {
               <p className="text-xs text-slate-500">{L.otpSub}</p>
             </div>
             {PhoneField}
-            <button type="submit" disabled={loading} className={primaryBtn}>
+            <button id="otp-send-btn" type="submit" disabled={loading} className={primaryBtn}>
               {loading ? t.loading : L.sendOtp}
             </button>
             <button type="button" className={linkBtn} onClick={() => go("login")}>

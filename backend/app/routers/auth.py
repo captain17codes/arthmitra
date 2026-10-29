@@ -15,7 +15,9 @@ from models.case import Advisory, Case, CaseInput, DprDocument, Evaluation
 from models.enums import OrgType, UserRole
 from models.organization import Organization, User
 
+from ..config import settings
 from ..deps import CurrentUser, DbSession, log_audit
+from ..firebase_auth import FirebaseTokenError, verify_firebase_phone_token
 from ..security import (
     create_access_token,
     create_setup_token,
@@ -65,6 +67,10 @@ class OtpRequest(BaseModel):
 class OtpVerify(BaseModel):
     phone: str
     otp: str = Field(..., min_length=4, max_length=8)
+
+
+class FirebaseVerify(BaseModel):
+    id_token: str
 
 
 class PinSetup(BaseModel):
@@ -149,6 +155,8 @@ async def login(req: LoginRequest, db: DbSession) -> dict[str, Any]:
 @router.post("/otp/request")
 async def request_otp(req: OtpRequest, db: DbSession) -> dict[str, Any]:
     """Send a 6-digit OTP for sign-up or PIN reset. Rate limited per number."""
+    if settings.otp_provider.lower() == "firebase":
+        raise HTTPException(status_code=400, detail="OTP is sent by Firebase; use /auth/firebase")
     phone = normalize_phone(req.phone)
     if not phone:
         raise _bad_phone()
@@ -213,6 +221,27 @@ async def verify_otp(req: OtpVerify, db: DbSession) -> dict[str, Any]:
         "is_new_user": user is None,
         "name": user.name if user else None,
     }
+
+
+@router.post("/firebase")
+async def verify_firebase(req: FirebaseVerify, db: DbSession) -> dict[str, Any]:
+    """Phone verified by Firebase (Google sends the SMS). Same result as /auth/otp/verify."""
+    try:
+        e164 = await verify_firebase_phone_token(req.id_token)
+    except FirebaseTokenError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)) from e
+    phone = normalize_phone(e164)
+    if not phone:
+        raise _bad_phone()
+    user = await _find_user(db, phone)
+    await db.commit()
+    return {"setup_token": create_setup_token(phone), "is_new_user": user is None, "name": user.name if user else None}
+
+
+@router.get("/config")
+async def auth_config() -> dict[str, Any]:
+    """Which OTP mode the server runs in (the app picks the matching flow)."""
+    return {"otp_provider": settings.otp_provider.lower()}
 
 
 @router.post("/pin", response_model=LoginResponse)

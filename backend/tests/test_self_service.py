@@ -169,3 +169,59 @@ async def test_non_personal_accounts_cannot_self_erase(api_client):  # noqa: F81
     r = await client.post("/auth/login", json={"phone": "9876543210", "pin": "1234"})
     h = {"Authorization": f"Bearer {r.json()['access_token']}"}
     assert (await client.delete("/auth/me", headers=h)).status_code == 403
+
+
+def _fake_firebase(monkeypatch):
+    """Sign tokens with our own key and serve its cert as if it were Google's."""
+    import datetime as dt
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+
+    from app import firebase_auth
+    from app.config import settings
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "test")])
+    now = dt.datetime.now(dt.UTC)
+    cert = (
+        x509.CertificateBuilder().subject_name(name).issuer_name(name).public_key(key.public_key())
+        .serial_number(1).not_valid_before(now - dt.timedelta(days=1)).not_valid_after(now + dt.timedelta(days=1))
+        .sign(key, hashes.SHA256())
+    )
+    pem = cert.public_bytes(serialization.Encoding.PEM).decode()
+    monkeypatch.setattr(settings, "firebase_project_id", "arthmitra-test")
+    monkeypatch.setattr(settings, "otp_provider", "firebase")
+    firebase_auth._cache.update(certs={"k1": pem}, exp=1e12)
+
+    def make(phone="+919822088888", provider="phone", aud="arthmitra-test", kid="k1"):
+        import time
+
+        import jwt as pyjwt
+
+        t = int(time.time())
+        claims = {"iss": f"https://securetoken.google.com/{aud}", "aud": aud, "sub": "u1", "iat": t, "exp": t + 3600,
+                  "auth_time": t, "phone_number": phone, "firebase": {"sign_in_provider": provider}}
+        return pyjwt.encode(claims, key, algorithm="RS256", headers={"kid": kid})
+
+    return make
+
+
+@pytest.mark.asyncio
+async def test_firebase_phone_login(api_client, monkeypatch):  # noqa: F811
+    client, _ = api_client
+    make = _fake_firebase(monkeypatch)
+    # Built-in OTP is switched off when Firebase sends the SMS
+    assert (await client.post("/auth/otp/request", json={"phone": "9822088888"})).status_code == 400
+    assert (await client.get("/auth/config")).json() == {"otp_provider": "firebase"}
+
+    r = await client.post("/auth/firebase", json={"id_token": make()})
+    assert r.status_code == 200 and r.json()["is_new_user"] is True
+    r = await client.post("/auth/pin", json={"setup_token": r.json()["setup_token"], "pin": "3690", "name": "Lata"})
+    assert r.status_code == 200
+    assert (await client.post("/auth/login", json={"phone": "9822088888", "pin": "3690"})).status_code == 200
+
+    for bad in (make(aud="other-project"), make(provider="password"), make(kid="nope"), "garbage"):
+        assert (await client.post("/auth/firebase", json={"id_token": bad})).status_code == 401

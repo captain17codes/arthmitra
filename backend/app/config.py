@@ -38,7 +38,9 @@ class Settings(BaseSettings):
 
     # OTP / SMS. "dev" returns the OTP in the API response (demo only, shown on screen
     # with a clear label); "msg91" sends a real SMS via a DLT-approved template.
-    otp_provider: str = "dev"
+    otp_provider: str = "dev"  # dev | msg91 | firebase
+    # Firebase phone auth: the browser gets the SMS from Google; we only verify the ID token.
+    firebase_project_id: str = ""
     msg91_auth_key: str = ""
     msg91_template_id: str = ""
     # Optional: (re)set the admin account at startup from the environment.
