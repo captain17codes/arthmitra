@@ -251,6 +251,67 @@ async def get_beneficiary(
     }
 
 
+class BeneficiaryUpdate(BaseModel):
+    first_name: str | None = Field(default=None, min_length=1, max_length=100)
+    gender: str | None = None
+    age: int | None = Field(default=None, ge=18, le=90)
+    category: str | None = None
+    disability_40: bool | None = None
+    occupation_flags: list[str] | None = None
+    annual_family_income: int | None = Field(default=None, ge=0)
+    education_band: str | None = None
+    shg_member: bool | None = None
+    prior_subsidy: TriState | None = None
+    credit_default: TriState | None = None
+    existing_emi_monthly: Decimal | None = None
+
+
+@router.patch("/{beneficiary_id}", response_model=BeneficiaryOut)
+async def update_beneficiary(
+    beneficiary_id: int,
+    req: BeneficiaryUpdate,
+    user: CurrentUser,
+    db: DbSession,
+) -> dict[str, Any]:
+    """Update a saved profile (a person keeps one profile and reuses it for every business plan)."""
+    res = await db.execute(
+        select(Beneficiary).where(
+            Beneficiary.id == beneficiary_id,
+            Beneficiary.org_id == user.org_id,
+            Beneficiary.deleted_at.is_(None),
+        )
+    )
+    b = res.scalar_one_or_none()
+    if not b:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Beneficiary not found")
+    changes = req.model_dump(exclude_unset=True)
+    for k, v in changes.items():
+        setattr(b, k, v)
+    await log_audit(db=db, actor_id=user.id, action="UPDATE", entity="beneficiaries", entity_id=str(b.id),
+                    diff={"fields": sorted(changes)})
+    await db.commit()
+    await db.refresh(b)
+    return {
+        "id": b.id,
+        "org_id": b.org_id,
+        "first_name": b.first_name,
+        "gender": b.gender,
+        "age": b.age,
+        "category": b.category,
+        "category_verified": b.category_verified,
+        "disability_40": b.disability_40,
+        "occupation_flags": b.occupation_flags,
+        "income_band": b.income_band,
+        "annual_family_income": b.annual_family_income,
+        "education_band": b.education_band,
+        "shg_member": b.shg_member,
+        "prior_subsidy": b.prior_subsidy.value,
+        "credit_default": b.credit_default.value,
+        "existing_emi_monthly": b.existing_emi_monthly,
+        "active_consent": True,
+    }
+
+
 @router.post("/{beneficiary_id}/consent")
 async def record_consent(
     beneficiary_id: int,

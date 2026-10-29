@@ -31,6 +31,10 @@ class User(Base):
     name = Column(String(255), nullable=False)
     # 🔒 Phone encrypted via EncryptedString
     phone = Column(EncryptedString(256), nullable=False)
+    # Keyed hash of the normalised phone, for lookups without decrypting every row.
+    phone_hash = Column(String(64), nullable=True, index=True)
+    failed_pin_attempts = Column(Integer, nullable=False, default=0, server_default="0")
+    locked_until = Column(DateTime(timezone=True), nullable=True)
     pin_hash = Column(String(255), nullable=False)
     lang = Column(String(10), nullable=False, default="mr")
     active = Column(Boolean, nullable=False, default=True)

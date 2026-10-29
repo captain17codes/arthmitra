@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  Users,
   AlertTriangle,
   Layers,
   MapPin,
@@ -44,13 +43,6 @@ export const SupervisorDashboardScreen: React.FC<Props> = ({
     const code = c.business?.code || "other";
     byBusiness[code] = (byBusiness[code] || 0) + 1;
   });
-
-  // Agents list
-  const agents = [
-    { name: "सुनिता पाटील (Sunita Patil)", count: Math.max(1, totalCases), role: "Bank Sakhi" },
-    { name: "राहुल शिंदे (Rahul Shinde)", count: 2, role: "CSC VLE" },
-    { name: "प्रिया माने (Priya Mane)", count: 1, role: "Bank Sakhi" },
-  ];
 
   return (
     <div className="p-4 space-y-4 pb-20">
@@ -96,15 +88,6 @@ export const SupervisorDashboardScreen: React.FC<Props> = ({
           <span className="text-[9px] text-slate-400">प्रकल्प खर्च</span>
         </div>
 
-        <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-          <span className="text-[10px] text-slate-500 font-bold uppercase block">
-            सक्रिय सखी/VLE
-          </span>
-          <span className="text-lg font-black text-slate-900 mt-0.5 block">
-            {agents.length}
-          </span>
-          <span className="text-[9px] text-indigo-600 font-bold">१००% उपस्थित</span>
-        </div>
       </div>
 
       {/* Saturation Risk Alert Card */}
@@ -204,36 +187,6 @@ export const SupervisorDashboardScreen: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Agent Performance Leaderboard */}
-      <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-indigo-600" />
-            बँक सखी / VLE कामकाज अहवाल
-          </h3>
-          <span className="text-[10px] text-slate-500 font-semibold">
-            {agents.length} प्रतिनिधी
-          </span>
-        </div>
-
-        <div className="space-y-2">
-          {agents.map((ag, i) => (
-            <div
-              key={i}
-              className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/70 flex items-center justify-between text-xs"
-            >
-              <div>
-                <span className="font-black text-slate-900 block">{ag.name}</span>
-                <span className="text-[10px] text-slate-500">{ag.role}</span>
-              </div>
-              <div className="text-right">
-                <span className="font-bold text-indigo-700">{ag.count} प्रकरणे</span>
-                <span className="text-[9px] text-emerald-600 block">१००% पूर्ण</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };

@@ -36,6 +36,15 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24  # 24 hours
     notice_version_current: str = "v1.0-2026-04"
 
+    # OTP / SMS. "dev" returns the OTP in the API response (demo only, shown on screen
+    # with a clear label); "msg91" sends a real SMS via a DLT-approved template.
+    otp_provider: str = "dev"
+    msg91_auth_key: str = ""
+    msg91_template_id: str = ""
+    # Optional: (re)set the admin account at startup from the environment.
+    admin_phone: str = ""
+    admin_pin: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

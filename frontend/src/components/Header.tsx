@@ -40,7 +40,7 @@ export const Header: React.FC<Props> = ({
               </span>
             </div>
             <p className="text-[10px] text-slate-500 font-medium truncate max-w-[140px]">
-              {user ? user.full_name : t.agentRole}
+              {user ? user.full_name : ""}
             </p>
           </div>
         </div>

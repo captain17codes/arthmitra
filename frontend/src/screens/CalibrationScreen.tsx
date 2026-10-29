@@ -121,7 +121,7 @@ export const CalibrationScreen: React.FC<Props> = ({
     if (competitors !== "") calib.competitor_count = Number(competitors);
     for (const q of questions) {
       const v = values[q.key];
-      // Only send values the agent changed: unchanged values stay marked as "default" in the DPR.
+      // Only send values the user changed: unchanged values stay marked as "default" in the DPR.
       if (v !== undefined && v !== "" && defaults[q.key] && Number(v) !== Number(defaults[q.key].value)) {
         calib[q.key] = Number(v);
       }

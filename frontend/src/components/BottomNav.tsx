@@ -6,12 +6,13 @@ import { translations } from "../i18n";
 export type NavTab = "cases" | "new_case" | "profile" | "supervisor";
 
 interface Props {
+  showAdmin?: boolean;
   currentTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
   lang: Language;
 }
 
-export const BottomNav: React.FC<Props> = ({ currentTab, onSelectTab, lang }) => {
+export const BottomNav: React.FC<Props> = ({ showAdmin = false, currentTab, onSelectTab, lang }) => {
   const t = translations[lang];
 
   return (
@@ -42,7 +43,8 @@ export const BottomNav: React.FC<Props> = ({ currentTab, onSelectTab, lang }) =>
         <span className="text-[11px] leading-none lg:text-sm">{t.newCaseBtn.replace("+ ", "")}</span>
       </button>
 
-      {/* Supervisor Console Tab */}
+      {/* Admin console (scheme / benchmark data) — admins only */}
+      {showAdmin && (
       <button
         onClick={() => onSelectTab("supervisor")}
         className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 rounded-xl transition lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:hover:bg-slate-100 ${
@@ -52,10 +54,11 @@ export const BottomNav: React.FC<Props> = ({ currentTab, onSelectTab, lang }) =>
         }`}
       >
         <ShieldAlert className="w-5 h-5 mb-0.5 lg:mb-0" />
-        <span className="text-[11px] leading-none lg:text-sm">पर्यवेक्षक</span>
+        <span className="text-[11px] leading-none lg:text-sm">Admin</span>
       </button>
+      )}
 
-      {/* Agent Info */}
+      {/* My account */}
       <button
         onClick={() => onSelectTab("profile")}
         className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 rounded-xl transition lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:hover:bg-slate-100 ${
@@ -65,7 +68,7 @@ export const BottomNav: React.FC<Props> = ({ currentTab, onSelectTab, lang }) =>
         }`}
       >
         <UserCircle className="w-5 h-5 mb-0.5 lg:mb-0" />
-        <span className="text-[11px] leading-none lg:text-sm">{t.agentRole.split(" ")[0]}</span>
+        <span className="text-[11px] leading-none lg:text-sm">{t.agentRole}</span>
       </button>
     </nav>
   );

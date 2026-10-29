@@ -9,10 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
-from app.security import hash_pin
 from app.seed import seed_business_types, seed_schemes
-from models.enums import CoordSource, OrgType, SchemeStatus, UserRole
-from models.organization import Organization, User
+from models.enums import CoordSource, OrgType, SchemeStatus
+from models.organization import Organization
 from models.scheme import SchemeVersion
 from models.village import Village, VillageNeighbour
 
@@ -39,48 +38,8 @@ async def init_and_seed_database():
             await session.flush()
             print("Seeded organizations: UMED Pune and CSC Satara.")
 
-        # 2. Users (Agents, Supervisor, Admin)
-        res_user = await session.execute(select(User).where(User.id == 1))
-        if res_user.scalar_one_or_none() is None:
-            agent1 = User(
-                id=1,
-                org_id=1,
-                role=UserRole.AGENT,
-                name="Sunita Patil (Bank Sakhi)",
-                phone="9876543210",
-                pin_hash=hash_pin("1234"),
-                lang="mr",
-            )
-            agent2 = User(
-                id=2,
-                org_id=2,
-                role=UserRole.AGENT,
-                name="Rahul Shinde (CSC VLE)",
-                phone="9123456789",
-                pin_hash=hash_pin("5678"),
-                lang="mr",
-            )
-            supervisor = User(
-                id=3,
-                org_id=1,
-                role=UserRole.SUPERVISOR,
-                name="Prakash Deshmukh (District Coordinator)",
-                phone="9999999999",
-                pin_hash=hash_pin("9999"),
-                lang="mr",
-            )
-            admin_user = User(
-                id=4,
-                org_id=1,
-                role=UserRole.ADMIN,
-                name="System Administrator",
-                phone="9000000000",
-                pin_hash=hash_pin("1111"),
-                lang="en",
-            )
-            session.add_all([agent1, agent2, supervisor, admin_user])
-            await session.flush()
-            print("Seeded users (Agent: 9876543210 / 1234 | Supervisor: 9999999999 / 9999 | Admin: 9000000000 / 1111).")
+        # 2. No demo logins: people sign up themselves with OTP; the admin comes from
+        #    ADMIN_PHONE / ADMIN_PIN (see app/accounts.py).
 
         # 3. Catalog Seed
         await seed_business_types(session)

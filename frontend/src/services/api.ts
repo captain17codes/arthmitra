@@ -75,13 +75,13 @@ interface BackendUser {
 }
 
 function toUser(u: BackendUser): User {
-  const role = (["agent", "supervisor", "admin"].includes(u.role) ? u.role : "agent") as Role;
+  const role = (["citizen", "agent", "supervisor", "admin"].includes(u.role) ? u.role : "citizen") as Role;
   return {
     id: String(u.id),
     full_name: u.name,
     role,
     organization_id: String(u.org_id),
-    organization_name: `Org #${u.org_id}`,
+    organization_name: role === "citizen" ? "" : `Org #${u.org_id}`,
     lang: u.lang,
   };
 }
@@ -147,6 +147,44 @@ function toCase(c: BackendCase): CaseRecord {
   };
 }
 
+interface BackendBeneficiary {
+  id: number;
+  first_name: string;
+  gender: string;
+  age: number;
+  category: string;
+  disability_40: boolean;
+  occupation_flags: string[] | null;
+  annual_family_income: number | null;
+  education_band: string;
+  shg_member: boolean;
+  prior_subsidy: string;
+  credit_default: string;
+  existing_emi_monthly: string | number;
+}
+
+const EDUCATION_LEVELS = ["illiterate", "primary", "middle_8th", "secondary_10th", "higher_secondary_12th", "graduate"];
+
+function toProfile(b: BackendBeneficiary): Partial<BeneficiaryProfile> {
+  const flags = b.occupation_flags || [];
+  return {
+    first_name: b.first_name,
+    gender: (["female", "male", "other"].includes(b.gender) ? b.gender : "female") as BeneficiaryProfile["gender"],
+    age: b.age,
+    category: b.category as BeneficiaryProfile["category"],
+    disability_40: b.disability_40,
+    sanitation_worker: flags.includes("sanitation_worker"),
+    traditional_artisan: flags.includes("traditional_artisan"),
+    street_vendor: flags.includes("street_vendor"),
+    annual_income: b.annual_family_income ?? undefined,
+    education: (EDUCATION_LEVELS.includes(b.education_band) ? b.education_band : undefined) as BeneficiaryProfile["education"],
+    prior_subsidy: b.prior_subsidy === "yes",
+    existing_emi: Number(b.existing_emi_monthly) || 0,
+    credit_default: (["no", "yes", "unknown"].includes(b.credit_default) ? b.credit_default : "unknown") as BeneficiaryProfile["credit_default"],
+    shg_member: b.shg_member,
+  };
+}
+
 function toBeneficiaryPayload(p: BeneficiaryProfile, consent: ConsentRecord) {
   const occupation_flags: string[] = [];
   if (p.sanitation_worker) occupation_flags.push("sanitation_worker");
@@ -178,7 +216,48 @@ function toBeneficiaryPayload(p: BeneficiaryProfile, consent: ConsentRecord) {
 // API surface
 // ---------------------------------------------------------------------------
 
+export interface OtpVerifyResult {
+  setup_token: string;
+  is_new_user: boolean;
+  name: string | null;
+}
+
 export const api = {
+  /** Sends an OTP. `dev_otp` is only present while no SMS provider is configured (demo mode). */
+  async requestOtp(phone: string): Promise<{ sent: boolean; dev_otp?: string }> {
+    return request("/auth/otp/request", { method: "POST", body: JSON.stringify({ phone }) });
+  },
+
+  async verifyOtp(phone: string, otp: string): Promise<OtpVerifyResult> {
+    return request("/auth/otp/verify", { method: "POST", body: JSON.stringify({ phone, otp }) });
+  },
+
+  /** Create the account (new number) or reset the PIN, and sign in. */
+  async setPin(setupToken: string, pin: string, name: string | null, lang: string): Promise<User> {
+    const data = await request<{ access_token: string; user: BackendUser }>("/auth/pin", {
+      method: "POST",
+      body: JSON.stringify({ setup_token: setupToken, pin, name, lang }),
+    });
+    storage.setToken(data.access_token);
+    const user = toUser(data.user);
+    storage.setUser(user);
+    return user;
+  },
+
+  async deleteMyAccount(): Promise<void> {
+    await request("/auth/me", { method: "DELETE" });
+    storage.clearToken();
+    storage.clearUser();
+    storage.clearCases();
+  },
+
+  /** The person's saved profile (one per account), or null before the first plan. */
+  async getMyProfile(): Promise<{ id: string; profile: Partial<BeneficiaryProfile> } | null> {
+    const rows = await request<BackendBeneficiary[]>("/beneficiaries");
+    if (!rows.length) return null;
+    return { id: String(rows[0].id), profile: toProfile(rows[0]) };
+  },
+
   async login(phone: string, pin: string): Promise<User> {
     const data = await request<{ access_token: string; user: BackendUser }>("/auth/login", {
       method: "POST",
@@ -230,11 +309,24 @@ export const api = {
     targetProjectCost: number | null;
     calibration: CalibrationData;
     language: string;
+    existingBeneficiaryId?: string | null;
   }): Promise<CaseRecord> {
-    const ben = await request<{ id: number }>("/beneficiaries", {
-      method: "POST",
-      body: JSON.stringify(toBeneficiaryPayload(args.profile, args.consent)),
-    });
+    let ben: { id: number };
+    if (args.existingBeneficiaryId) {
+      // Saved profile: update it with any changes (consent was recorded with the first plan).
+      const fields: Record<string, unknown> = { ...toBeneficiaryPayload(args.profile, args.consent) };
+      delete fields.consent;
+      delete fields.income_band;
+      ben = await request<{ id: number }>(`/beneficiaries/${args.existingBeneficiaryId}`, {
+        method: "PATCH",
+        body: JSON.stringify(fields),
+      });
+    } else {
+      ben = await request<{ id: number }>("/beneficiaries", {
+        method: "POST",
+        body: JSON.stringify(toBeneficiaryPayload(args.profile, args.consent)),
+      });
+    }
     const created = await request<{ id: number }>("/cases", {
       method: "POST",
       body: JSON.stringify({

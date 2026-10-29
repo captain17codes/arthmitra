@@ -1,5 +1,6 @@
 from app.database import Base
 
+from .auth_otp import OtpCode
 from .beneficiary import Beneficiary, Consent
 from .business_type import Benchmark, BusinessType
 from .case import Advisory, Case, CaseInput, DprDocument, Evaluation
@@ -25,6 +26,7 @@ from .village import HcesShare, StateParam, Village, VillageNeighbour
 
 __all__ = [
     "Base",
+    "OtpCode",
     "OrgType",
     "UserRole",
     "CoordSource",

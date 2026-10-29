@@ -1,6 +1,6 @@
 export type Language = "mr" | "hi" | "en";
 
-export type Role = "agent" | "supervisor" | "admin";
+export type Role = "citizen" | "agent" | "supervisor" | "admin";
 
 export interface User {
   id: string;

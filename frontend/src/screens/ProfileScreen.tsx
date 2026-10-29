@@ -25,11 +25,11 @@ export const ProfileScreen: React.FC<Props> = ({
 }) => {
   const t = translations[lang];
 
-  const [firstName, setFirstName] = useState(initialProfile?.first_name || "अनिता कांबळे");
+  const [firstName, setFirstName] = useState(initialProfile?.first_name || "");
   const [gender, setGender] = useState<Gender>(initialProfile?.gender || "female");
-  const [age, setAge] = useState<number>(initialProfile?.age || 32);
-  const [category, setCategory] = useState<SocialCategory>(
-    initialProfile?.category || "SC"
+  const [age, setAge] = useState<string>(initialProfile?.age ? String(initialProfile.age) : "");
+  const [category, setCategory] = useState<SocialCategory | null>(
+    initialProfile?.category || null
   );
   const [disability40, setDisability40] = useState<boolean>(
     initialProfile?.disability_40 || false
@@ -43,8 +43,8 @@ export const ProfileScreen: React.FC<Props> = ({
   const [streetVendor, setStreetVendor] = useState<boolean>(
     initialProfile?.street_vendor || false
   );
-  const [annualIncome, setAnnualIncome] = useState<number>(
-    initialProfile?.annual_income || 120000
+  const [annualIncome, setAnnualIncome] = useState<string>(
+    initialProfile?.annual_income !== undefined ? String(initialProfile.annual_income) : ""
   );
   const [education, setEducation] = useState<EducationLevel>(
     initialProfile?.education || "secondary_10th"
@@ -59,21 +59,35 @@ export const ProfileScreen: React.FC<Props> = ({
     initialProfile?.credit_default || "no"
   );
   const [shgMember, setShgMember] = useState<boolean>(
-    initialProfile?.shg_member !== undefined ? initialProfile.shg_member : true
+    initialProfile?.shg_member ?? false
   );
+
+  const [formError, setFormError] = useState("");
+  const mr = lang === "mr";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const ageNum = Number(age);
+    const incomeNum = Number(annualIncome);
+    if (!firstName.trim() || !ageNum || ageNum < 18 || ageNum > 90 || !category || annualIncome === "" || incomeNum < 0) {
+      setFormError(
+        mr
+          ? "कृपया नाव, वय (१८–९०), सामाजिक प्रवर्ग आणि कुटुंबाचे वार्षिक उत्पन्न भरा."
+          : "Please fill name, age (18–90), social category and annual family income."
+      );
+      return;
+    }
+    setFormError("");
     onSaveProfile({
-      first_name: firstName,
+      first_name: firstName.trim(),
       gender,
-      age,
+      age: ageNum,
       category,
       disability_40: disability40,
       sanitation_worker: sanitationWorker,
       traditional_artisan: traditionalArtisan,
       street_vendor: streetVendor,
-      annual_income: annualIncome,
+      annual_income: incomeNum,
       education,
       prior_subsidy: priorSubsidy,
       existing_emi: existingEmi,
@@ -87,7 +101,7 @@ export const ProfileScreen: React.FC<Props> = ({
       {/* Step Header */}
       <div>
         <span className="text-[10px] uppercase font-bold text-indigo-700 tracking-wider bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-          पायरी २ / ५ · उद्योजक प्रोफाइल
+          पायरी २ / ५ · माझी माहिती
         </span>
         <h2 className="text-base font-black text-slate-900 mt-1 flex items-center gap-1.5">
           <UserCheck className="w-4 h-4 text-indigo-600" />
@@ -137,7 +151,7 @@ export const ProfileScreen: React.FC<Props> = ({
               min={18}
               max={70}
               value={age}
-              onChange={(e) => setAge(parseInt(e.target.value) || 18)}
+              onChange={(e) => setAge(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 min-h-[48px]"
               required
             />
@@ -278,7 +292,8 @@ export const ProfileScreen: React.FC<Props> = ({
               type="number"
               step={10000}
               value={annualIncome}
-              onChange={(e) => setAnnualIncome(parseInt(e.target.value) || 0)}
+              onChange={(e) => setAnnualIncome(e.target.value)}
+              placeholder={mr ? "उदा. 90000" : "e.g. 90000"}
               className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 min-h-[48px]"
               required
             />
@@ -379,6 +394,9 @@ export const ProfileScreen: React.FC<Props> = ({
         </div>
 
         {/* Buttons */}
+        {formError && (
+          <div role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800">{formError}</div>
+        )}
         <div className="pt-2 flex items-center gap-3">
           <button
             type="button"

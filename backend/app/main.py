@@ -21,6 +21,7 @@ async def lifespan(app: FastAPI):
 
     from models import spatial
 
+    from .accounts import finalize_accounts
     from .database import Base, async_session_maker, engine
     from .seed import seed_all
 
@@ -40,15 +41,28 @@ async def lifespan(app: FastAPI):
             if engine.dialect.name == "postgresql":
                 # create_all does not add columns to existing tables; keep this list in sync
                 # with Alembic migrations until deploys run `alembic upgrade head`.
-                await conn.execute(
-                    text("ALTER TABLE beneficiaries ADD COLUMN IF NOT EXISTS annual_family_income INTEGER")
-                )
+                for stmt in (
+                    "ALTER TABLE beneficiaries ADD COLUMN IF NOT EXISTS annual_family_income INTEGER",
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_hash VARCHAR(64)",
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_pin_attempts INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ",
+                    "CREATE INDEX IF NOT EXISTS ix_users_phone_hash ON users (phone_hash)",
+                ):
+                    await conn.execute(text(stmt))
+        if engine.dialect.name == "postgresql":
+            # New enum labels (SQLAlchemy stores enum NAMES). Must run outside the create_all transaction.
+            for typ, label in (("userrole", "CITIZEN"), ("orgtype", "INDIVIDUAL")):
+                async with engine.connect() as conn:
+                    conn = await conn.execution_options(isolation_level="AUTOCOMMIT")
+                    await conn.execute(text(f"ALTER TYPE {typ} ADD VALUE IF NOT EXISTS '{label}'"))
         async with async_session_maker() as session:
             await seed_all(session)
         if os.getenv("SEED_DEMO_DATA", "").lower() == "true":
             from seed_demo import init_and_seed_database
 
             await init_and_seed_database()
+        async with async_session_maker() as session:
+            await finalize_accounts(session)
     except Exception as e:
         print(f"FATAL: database initialisation failed: {e!r}")
         if settings.environment == "production":

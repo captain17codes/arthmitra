@@ -126,13 +126,13 @@ export const ResultsScreen: React.FC<Props> = ({ caseRecord, onCaseUpdated, onGo
     let text: string;
     if (!best) {
       text = mr
-        ? `${caseRecord.beneficiary.first_name} यांच्या ${biz} व्यवसायासाठी सध्या कोणतीही योजना पात्र दिसत नाही.`
-        : `No scheme is currently eligible for ${caseRecord.beneficiary.first_name}'s ${biz}.`;
+        ? `तुमच्या ${biz} व्यवसायासाठी सध्या कोणतीही योजना पात्र दिसत नाही.`
+        : `No scheme is currently eligible for your ${biz}.`;
     } else {
       const emi = Math.round(Number(best.emi));
       text = mr
-        ? `${caseRecord.beneficiary.first_name} यांच्या ${biz} व्यवसायासाठी सर्वोत्तम योजना ${schemeName(best, lang)}. कर्ज ${Math.round(Number(best.loan_amount))} रुपये. हप्ता ${emi} रुपये ${emiLabel(best.emi_frequency_months, lang)}. स्वतःचे पैसे ${Math.round(Number(best.own_margin_required))} रुपये.`
-        : `Best option for ${caseRecord.beneficiary.first_name}: ${schemeName(best, lang)}. Loan ${Math.round(Number(best.loan_amount))} rupees. Instalment ${emi} rupees ${emiLabel(best.emi_frequency_months, lang)}. Own money ${Math.round(Number(best.own_margin_required))} rupees.`;
+        ? `तुमच्या ${biz} व्यवसायासाठी सर्वोत्तम योजना ${schemeName(best, lang)}. कर्ज ${Math.round(Number(best.loan_amount))} रुपये. हप्ता ${emi} रुपये ${emiLabel(best.emi_frequency_months, lang)}. स्वतःचे पैसे ${Math.round(Number(best.own_margin_required))} रुपये.`
+        : `Best option for your ${biz}: ${schemeName(best, lang)}. Loan ${Math.round(Number(best.loan_amount))} rupees. Instalment ${emi} rupees ${emiLabel(best.emi_frequency_months, lang)}. Own money ${Math.round(Number(best.own_margin_required))} rupees.`;
     }
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang === "mr" ? "mr-IN" : lang === "hi" ? "hi-IN" : "en-IN";

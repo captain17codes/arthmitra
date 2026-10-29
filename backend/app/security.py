@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -33,6 +34,44 @@ def verify_pin(pin: str, pin_hash: str) -> bool:
         return False
 
 
+def normalize_phone(raw: str) -> str | None:
+    """Return a 10-digit Indian mobile number, or None if invalid."""
+    digits = "".join(ch for ch in (raw or "") if ch.isdigit())
+    if len(digits) == 12 and digits.startswith("91"):
+        digits = digits[2:]
+    elif len(digits) == 11 and digits.startswith("0"):
+        digits = digits[1:]
+    if len(digits) == 10 and digits[0] in "6789":
+        return digits
+    return None
+
+
+def keyed_hash(value: str, purpose: str) -> str:
+    """HMAC-SHA256 so phone/OTP hashes cannot be brute-forced without the server key."""
+    key = (settings.encryption_key or settings.secret_key).encode("utf-8")
+    return hmac.new(key, f"{purpose}:{value}".encode(), hashlib.sha256).hexdigest()
+
+
+def phone_hash(phone: str) -> str:
+    return keyed_hash(phone, "phone")
+
+
+def create_setup_token(phone: str, minutes: int = 15) -> str:
+    """Short-lived token proving OTP verification; only usable to set a PIN."""
+    now = datetime.now(UTC)
+    payload = {"typ": "pin_setup", "ph": phone_hash(phone), "phone": phone, "iat": now,
+               "exp": now + timedelta(minutes=minutes)}
+    return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
+
+
+def decode_setup_token(token: str) -> dict[str, Any] | None:
+    try:
+        data = jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
+    except jwt.PyJWTError:
+        return None
+    return data if data.get("typ") == "pin_setup" else None
+
+
 def create_access_token(
     user_id: int, role: str, org_id: int, expires_delta: timedelta | None = None
 ) -> str:
@@ -53,9 +92,10 @@ def create_access_token(
 def decode_access_token(token: str) -> dict[str, Any] | None:
     """Decode and validate signed JWT token."""
     try:
-        return jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
+        data = jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
     except jwt.PyJWTError:
         return None
+    return None if data.get("typ") == "pin_setup" else data
 
 
 def _derive_fernet_key(secret: str) -> bytes:

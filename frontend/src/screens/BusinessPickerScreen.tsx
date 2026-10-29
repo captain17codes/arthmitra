@@ -150,8 +150,8 @@ export const BusinessPickerScreen: React.FC<Props> = ({
           />
           <p className="text-[10px] text-slate-500 mt-1">
             {mr
-              ? "लाभार्थ्याकडे प्रत्यक्ष असलेली रक्कम. प्रकल्प व कर्ज प्रत्येक योजनेनुसार गणले जाईल."
-              : "Money the beneficiary actually has. Project and loan are sized per scheme by the engine."}
+              ? "तुमच्याकडे प्रत्यक्ष असलेली रक्कम. प्रकल्प व कर्ज प्रत्येक योजनेनुसार गणले जाईल."
+              : "Money you actually have in hand. Project and loan are sized per scheme by the engine."}
           </p>
         </div>
 

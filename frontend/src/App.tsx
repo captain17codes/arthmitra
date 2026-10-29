@@ -22,7 +22,7 @@ import { BusinessPickerScreen } from "./screens/BusinessPickerScreen";
 import { CalibrationScreen } from "./screens/CalibrationScreen";
 import { ResultsScreen } from "./screens/ResultsScreen";
 import { DprScreen } from "./screens/DprScreen";
-import { AgentProfileScreen } from "./screens/AgentProfileScreen";
+import { AccountScreen } from "./screens/AccountScreen";
 import { SupervisorDashboardScreen } from "./screens/SupervisorDashboardScreen";
 import { AdminSchemeEditorScreen } from "./screens/AdminSchemeEditorScreen";
 import { AdminBenchmarkScreen } from "./screens/AdminBenchmarkScreen";
@@ -57,6 +57,9 @@ export const App: React.FC = () => {
   const [draftBusiness, setDraftBusiness] = useState<BusinessType | null>(null);
   const [draftCost, setDraftCost] = useState<number | null>(null);
   const [draftMargin, setDraftMargin] = useState<number | undefined>(undefined);
+  // The person's saved profile (one per account), reused for every new plan.
+  const [savedProfileId, setSavedProfileId] = useState<string | null>(null);
+  const [savedProfile, setSavedProfile] = useState<Partial<BeneficiaryProfile> | null>(null);
 
   const refreshCases = async () => {
     try {
@@ -100,26 +103,39 @@ export const App: React.FC = () => {
     storage.clearCases();
     setCases([]);
     setSelectedCase(null);
+    setSavedProfileId(null);
+    setSavedProfile(null);
+    setCurrentTab("cases");
     setUser(null);
   };
 
-  const startNewCase = () => {
+  const startNewCase = async () => {
     setSelectedCase(null);
     setViewingDpr(false);
     setDraftConsent(null);
     setDraftProfile(null);
     setDraftVillage(null);
     setDraftBusiness(null);
+    setEvalError("");
     setWizardStep("consent");
     setCurrentTab("new_case");
+    try {
+      const mine = await api.getMyProfile();
+      setSavedProfileId(mine?.id ?? null);
+      setSavedProfile(mine?.profile ?? null);
+      if (mine) {
+        // Consent was already recorded with the first plan; go straight to the (prefilled) details.
+        setDraftConsent({ language: lang, method: "tap" });
+        setWizardStep("profile");
+      }
+    } catch {
+      setSavedProfileId(null);
+      setSavedProfile(null);
+    }
   };
 
-  const handleConsentGranted = (c: { method?: string; audio_sha256?: string }) => {
-    setDraftConsent({
-      language: lang,
-      method: c.method === "voice" ? "voice" : "tap",
-      audio_sha256: c.audio_sha256,
-    });
+  const handleConsentGranted = () => {
+    setDraftConsent({ language: lang, method: "tap" });
     setWizardStep("profile");
   };
 
@@ -154,13 +170,14 @@ export const App: React.FC = () => {
         targetProjectCost: draftCost,
         calibration: calib,
         language: lang,
+        existingBeneficiaryId: savedProfileId,
       });
       await refreshCases();
       setSelectedCase(created);
       setViewingDpr(false);
       setCurrentTab("cases");
     } catch (e) {
-      // Stay on the wizard with all entered data so the agent can retry.
+      // Stay on the wizard with all entered data so the person can retry.
       setEvalError((e as Error).message);
     } finally {
       setEvalBusy(false);
@@ -200,13 +217,14 @@ export const App: React.FC = () => {
         {!user ? (
           <LoginScreen lang={lang} onLoginSuccess={handleLoginSuccess} />
         ) : currentTab === "profile" ? (
-          <AgentProfileScreen
+          <AccountScreen
             user={user}
             cases={cases}
             onLogout={handleLogout}
+            onAccountDeleted={handleLogout}
             lang={lang}
           />
-        ) : currentTab === "supervisor" ? (
+        ) : currentTab === "supervisor" && user.role === "admin" ? (
           adminSubView === "schemes" ? (
             <AdminSchemeEditorScreen
               onBack={() => setAdminSubView("none")}
@@ -245,9 +263,9 @@ export const App: React.FC = () => {
             {wizardStep === "profile" && (
               <ProfileScreen
                 lang={lang}
-                initialProfile={draftProfile || undefined}
+                initialProfile={draftProfile || savedProfile || { first_name: user.full_name }}
                 onSaveProfile={handleSaveProfile}
-                onBack={() => setWizardStep("consent")}
+                onBack={() => (savedProfileId ? setCurrentTab("cases") : setWizardStep("consent"))}
               />
             )}
             {wizardStep === "village" && (
@@ -311,6 +329,7 @@ export const App: React.FC = () => {
       {/* Bottom nav on phones, left sidebar on desktop */}
       {user && (
         <BottomNav
+          showAdmin={user.role === "admin"}
           currentTab={currentTab}
           onSelectTab={(tab) => {
             if (tab === "new_case") {

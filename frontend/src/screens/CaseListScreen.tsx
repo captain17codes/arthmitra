@@ -6,7 +6,6 @@ import {
   MapPin,
   PlusCircle,
   Search,
-  User,
 } from "lucide-react";
 import { CaseRecord, CaseStatus, Language } from "../types";
 import { formatINR, translations } from "../i18n";
@@ -72,7 +71,7 @@ export const CaseListScreen: React.FC<Props> = ({
         <div>
           <h2 className="text-lg font-black text-slate-900">{t.casesTitle}</h2>
           <p className="text-xs text-slate-500 font-medium">
-            {cases.length} {cases.length === 1 ? "केस" : "प्रकरणे नोंदणीकृत"}
+            {cases.length} {lang === "en" ? (cases.length === 1 ? "plan" : "plans") : lang === "hi" ? "प्लान" : "प्लॅन"}
           </p>
         </div>
         <button
@@ -142,13 +141,9 @@ export const CaseListScreen: React.FC<Props> = ({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-indigo-600" />
-                    {c.beneficiary.first_name}
-                  </h3>
-                  <span className="text-[11px] font-semibold text-indigo-700 flex items-center gap-1 mt-0.5">
-                    <Building2 className="w-3 h-3" />
+                    <Building2 className="w-4 h-4 text-indigo-600" />
                     {c.business ? (lang === "mr" ? c.business.name_mr : c.business.name_en) : c.business_code}
-                  </span>
+                  </h3>
                 </div>
                 <StatusBadge status={c.status as CaseStatus} lang={lang} />
               </div>

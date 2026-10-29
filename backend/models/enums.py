@@ -7,12 +7,14 @@ class OrgType(str, Enum):
     NGO = "ngo"
     SCA = "sca"
     OTHER = "other"
+    INDIVIDUAL = "individual"  # one per self-registered person; isolates their data
 
 
 class UserRole(str, Enum):
     AGENT = "agent"
     SUPERVISOR = "supervisor"
     ADMIN = "admin"
+    CITIZEN = "citizen"  # the entrepreneur using the app for themselves
 
 
 class CoordSource(str, Enum):
