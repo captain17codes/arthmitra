@@ -228,6 +228,11 @@ export const api = {
     return request("/auth/otp/request", { method: "POST", body: JSON.stringify({ phone }) });
   },
 
+  /** Server OTP mode: "firebase" | "dev" | "msg91". */
+  async authConfig(): Promise<{ otp_provider: string }> {
+    return request("/auth/config");
+  },
+
   /** Exchange a Firebase phone-auth ID token for the same result as verifyOtp. */
   async verifyFirebase(idToken: string): Promise<OtpVerifyResult> {
     return request("/auth/firebase", { method: "POST", body: JSON.stringify({ id_token: idToken }) });

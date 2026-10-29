@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { KeyRound, Lock, MessageSquareText, Phone, ShieldCheck, UserRound } from "lucide-react";
 import { Language, User } from "../types";
 import { translations } from "../i18n";
@@ -130,6 +130,16 @@ export const LoginScreen: React.FC<Props> = ({ lang, onLoginSuccess }) => {
   const [newPin2, setNewPin2] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Firebase SMS is used only when the server says so (one switch: OTP_PROVIDER on the API).
+  const [useFirebase, setUseFirebase] = useState(false);
+
+  useEffect(() => {
+    if (!firebaseEnabled()) return;
+    api
+      .authConfig()
+      .then((c) => setUseFirebase(c.otp_provider === "firebase"))
+      .catch(() => setUseFirebase(false));
+  }, []);
 
   const fail = (e: unknown, fallback?: string) => {
     if (e instanceof ApiError && e.status === 0) setError(L.offline);
@@ -170,7 +180,7 @@ export const LoginScreen: React.FC<Props> = ({ lang, onLoginSuccess }) => {
     if (!validPhone(phone)) return setError(L.badPhone);
     run(async () => {
       try {
-        if (firebaseEnabled()) {
+        if (useFirebase) {
           await firebaseSendOtp(phone, "otp-send-btn");
           setDevOtp(null);
         } else {
@@ -190,7 +200,7 @@ export const LoginScreen: React.FC<Props> = ({ lang, onLoginSuccess }) => {
     if (otp.length !== 6) return setError(L.needOtp);
     run(async () => {
       try {
-        const r = firebaseEnabled()
+        const r = useFirebase
           ? await api.verifyFirebase(await firebaseConfirmOtp(otp))
           : await api.verifyOtp(phone, otp);
         setSetupToken(r.setup_token);
